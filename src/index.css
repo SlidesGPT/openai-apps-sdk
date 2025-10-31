@@ -1,0 +1,96 @@
+@import "tailwindcss" source(".");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* SlidesGPT Brand Colors */
+    --primary: 263 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 86%;
+    --secondary-foreground: 0 0% 0%;
+    --accent: 101 93% 78%;
+    --accent-foreground: 0 0% 0%;
+
+    /* Backgrounds */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+    --muted: 0 0% 95%;
+    --muted-foreground: 0 0% 40%;
+
+    /* UI Elements */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --border: 0 0% 95%;
+    --input: 0 0% 95%;
+    --ring: 0 0% 0%;
+
+    /* Semantic Colors */
+    --success: 142.1 70.2% 45.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --primary: 263 100% 60%;
+      --primary-foreground: 0 0% 100%;
+      --secondary: 0 0% 20%;
+      --secondary-foreground: 0 0% 100%;
+      --accent: 101 93% 78%;
+      --accent-foreground: 0 0% 0%;
+
+      --background: 0 0% 10%;
+      --foreground: 0 0% 100%;
+      --muted: 0 0% 20%;
+      --muted-foreground: 0 0% 60%;
+
+      --card: 0 0% 15%;
+      --card-foreground: 0 0% 100%;
+      --border: 0 0% 20%;
+      --input: 0 0% 20%;
+      --ring: 0 0% 100%;
+
+      --success: 142.1 70.2% 45.2%;
+      --destructive: 0 84.2% 60.2%;
+      --destructive-foreground: 0 0% 100%;
+    }
+  }
+}
+
+@layer utilities {
+  .overflow-auto > *,
+  .overflow-scroll > *,
+  .overflow-x-auto > *,
+  .overflow-y-auto > * {
+    scrollbar-color: auto;
+  }
+
+  /* Base style for scrollable elements */
+  .overflow-auto,
+  .overflow-scroll,
+  .overflow-x-auto,
+  .overflow-y-auto,
+  .overflow-x-scroll,
+  .overflow-y-scroll {
+    scrollbar-color: rgb(0, 0, 0, 0.1) transparent;
+
+    @media (prefers-color-scheme: dark) {
+      scrollbar-color: rgb(255, 255, 255, 0.1) transparent;
+    }
+  }
+
+  /* Hover state directly on the scrollable element */
+  .overflow-auto:hover,
+  .overflow-scroll:hover,
+  .overflow-x-auto:hover,
+  .overflow-y-auto:hover {
+    scrollbar-color: rgb(0, 0, 0, 0.2) transparent;
+
+    @media (prefers-color-scheme: dark) {
+      scrollbar-color: rgb(255, 255, 255, 0.2) transparent;
+    }
+  }
+}
