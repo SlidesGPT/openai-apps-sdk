@@ -6,57 +6,63 @@
 
 @layer base {
   :root {
-    /* SlidesGPT Brand Colors */
-    --primary: 263 100% 50%;
+    /* ChatGPT System Colors - Light Mode */
+    --primary: 16 100% 50%;              /* ChatGPT accent (orange-red) */
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 86%;
-    --secondary-foreground: 0 0% 0%;
-    --accent: 101 93% 78%;
-    --accent-foreground: 0 0% 0%;
+    --secondary: 0 0% 96%;               /* System gray background */
+    --secondary-foreground: 0 0% 9%;
+    --accent: 263 100% 50%;              /* SlidesGPT Purple for brand */
+    --accent-foreground: 0 0% 100%;
 
-    /* Backgrounds */
+    /* Backgrounds - System neutral colors */
     --background: 0 0% 100%;
-    --foreground: 0 0% 0%;
-    --muted: 0 0% 95%;
-    --muted-foreground: 0 0% 40%;
+    --foreground: 0 0% 9%;               /* Near-black text */
+    --muted: 0 0% 96%;                   /* Subtle gray */
+    --muted-foreground: 0 0% 45%;        /* Medium gray text */
 
-    /* UI Elements */
+    /* UI Elements - Minimal borders per ChatGPT style */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 0%;
-    --border: 0 0% 95%;
-    --input: 0 0% 95%;
-    --ring: 0 0% 0%;
+    --card-foreground: 0 0% 9%;
+    --border: 0 0% 90%;                  /* Light border */
+    --input: 0 0% 96%;
+    --ring: 16 100% 50%;                 /* Focus matches primary */
 
     /* Semantic Colors */
-    --success: 142.1 70.2% 45.2%;
-    --destructive: 0 84.2% 60.2%;
+    --success: 142 71% 45%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
   }
 
   @media (prefers-color-scheme: dark) {
     :root {
-      --primary: 263 100% 60%;
+      /* ChatGPT System Colors - Dark Mode */
+      --primary: 16 100% 55%;            /* Slightly brighter in dark mode */
       --primary-foreground: 0 0% 100%;
-      --secondary: 0 0% 20%;
-      --secondary-foreground: 0 0% 100%;
-      --accent: 101 93% 78%;
-      --accent-foreground: 0 0% 0%;
+      --secondary: 0 0% 15%;
+      --secondary-foreground: 0 0% 90%;
+      --accent: 263 100% 60%;            /* SlidesGPT Purple adjusted */
 
-      --background: 0 0% 10%;
-      --foreground: 0 0% 100%;
-      --muted: 0 0% 20%;
+      --background: 0 0% 9%;             /* Dark gray, not pure black */
+      --foreground: 0 0% 98%;
+      --muted: 0 0% 15%;
       --muted-foreground: 0 0% 60%;
 
-      --card: 0 0% 15%;
-      --card-foreground: 0 0% 100%;
+      --card: 0 0% 12%;
+      --card-foreground: 0 0% 98%;
       --border: 0 0% 20%;
-      --input: 0 0% 20%;
-      --ring: 0 0% 100%;
+      --input: 0 0% 15%;
+      --ring: 16 100% 55%;
 
-      --success: 142.1 70.2% 45.2%;
-      --destructive: 0 84.2% 60.2%;
+      --success: 142 71% 45%;
+      --destructive: 0 84% 60%;
       --destructive-foreground: 0 0% 100%;
     }
+  }
+
+  /* System font stack - matches ChatGPT native fonts */
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, sans-serif;
   }
 }
 
