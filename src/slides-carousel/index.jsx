@@ -37,10 +37,14 @@ function App() {
     };
   }, [emblaApi]);
 
+  // Show loading state while slides are being generated
   if (!slides || slides.length === 0) {
     return (
-      <div className="antialiased w-full min-h-[200px] flex items-center justify-center bg-white text-black/60">
-        <p>No slides available</p>
+      <div className="antialiased w-full min-h-[400px] flex items-center justify-center bg-white">
+        <div className="text-center space-y-3">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
+          <p className="text-sm text-gray-400">Generating slides...</p>
+        </div>
       </div>
     );
   }
