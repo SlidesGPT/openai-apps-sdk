@@ -1,0 +1,50 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build outputs
+assets
+dist
+build
+.next
+out
+
+# Development files
+.git
+.github
+.vscode
+.idea
+*.log
+*.log.*
+
+# Testing
+coverage
+.nyc_output
+
+# Environment files (add these via Cloud Run env vars instead)
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Misc
+*.md
+!README.md
+.prettierrc
+.eslintrc*
+.gitignore
+.pre-commit-config.yaml
+
+# Vercel
+.vercel
+api
+
+# Claude
+.claude
+
+# Development configs
+vite.host.config.mts
+dev-all.mts
