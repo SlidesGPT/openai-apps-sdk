@@ -52,7 +52,7 @@ function App() {
   return (
     <div className="antialiased relative w-full text-black py-5 bg-white">
       <div className="overflow-hidden" ref={emblaRef}>
-        <div className="flex gap-4 max-sm:mx-5 items-stretch">
+        <div className="flex gap-4 px-5 items-stretch">
           {slides.map((slide, index) => (
             <SlideCard key={slide.slidenum || index} slide={slide} />
           ))}
@@ -63,7 +63,7 @@ function App() {
       <div
         aria-hidden
         className={
-          "pointer-events-none absolute inset-y-0 left-0 w-3 z-[5] transition-opacity duration-200 " +
+          "pointer-events-none absolute inset-y-0 left-0 w-8 z-[5] transition-opacity duration-200 " +
           (canPrev ? "opacity-100" : "opacity-0")
         }
       >
@@ -80,7 +80,7 @@ function App() {
       <div
         aria-hidden
         className={
-          "pointer-events-none absolute inset-y-0 right-0 w-3 z-[5] transition-opacity duration-200 " +
+          "pointer-events-none absolute inset-y-0 right-0 w-8 z-[5] transition-opacity duration-200 " +
           (canNext ? "opacity-100" : "opacity-0")
         }
       >
@@ -99,7 +99,7 @@ function App() {
       {canPrev && (
         <button
           aria-label="Previous"
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-10 inline-flex items-center justify-center h-8 w-8 rounded-full bg-white text-black shadow-lg ring ring-black/5 hover:bg-white"
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-10 inline-flex items-center justify-center h-8 w-8 rounded-full bg-white text-black shadow-lg ring ring-black/5 hover:bg-white active:scale-95 transition-transform"
           onClick={() => emblaApi && emblaApi.scrollPrev()}
           type="button"
         >
@@ -113,7 +113,7 @@ function App() {
       {canNext && (
         <button
           aria-label="Next"
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-10 inline-flex items-center justify-center h-8 w-8 rounded-full bg-white text-black shadow-lg ring ring-black/5 hover:bg-white"
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-10 inline-flex items-center justify-center h-8 w-8 rounded-full bg-white text-black shadow-lg ring ring-black/5 hover:bg-white active:scale-95 transition-transform"
           onClick={() => emblaApi && emblaApi.scrollNext()}
           type="button"
         >
