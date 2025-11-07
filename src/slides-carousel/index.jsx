@@ -2,19 +2,10 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import useEmblaCarousel from "embla-carousel-react";
 import { ArrowLeft, ArrowRight, Maximize2 } from "lucide-react";
-import { AnimatePresence } from "framer-motion";
-import {
-  useNavigate,
-  useLocation,
-  Routes,
-  Route,
-  BrowserRouter,
-} from "react-router-dom";
 import { useWidgetProps } from "../use-widget-props";
 import { useOpenAiGlobal } from "../use-openai-global";
 import { useMaxHeight } from "../use-max-height";
 import SlideCard from "./SlideCard";
-import SlideInspector from "./SlideInspector";
 
 function App() {
   const props = useWidgetProps({
@@ -22,19 +13,8 @@ function App() {
   });
 
   const { slides = [] } = props;
-  const navigate = useNavigate();
-  const location = useLocation();
   const displayMode = useOpenAiGlobal("displayMode");
-  const allowInspector = displayMode === "fullscreen";
   const maxHeight = useMaxHeight() ?? undefined;
-
-  // Parse selected slide ID from URL
-  const selectedSlideNum = React.useMemo(() => {
-    const match = location?.pathname?.match(/(?:^|\/)slide\/(\d+)/);
-    return match && match[1] ? parseInt(match[1], 10) : null;
-  }, [location?.pathname]);
-
-  const selectedSlide = slides.find((s) => s.slidenum === selectedSlideNum) || null;
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: "center",
@@ -92,9 +72,6 @@ function App() {
             aria-label="Enter fullscreen"
             className="absolute top-4 right-4 z-30 rounded-full bg-white text-black shadow-lg ring ring-black/5 p-2.5 pointer-events-auto hover:ring-black/10 hover:shadow-xl transition-all"
             onClick={() => {
-              if (selectedSlideNum) {
-                navigate("..", { replace: true });
-              }
               if (typeof window !== "undefined" && window?.webplus?.requestDisplayMode) {
                 window.webplus.requestDisplayMode({ mode: "fullscreen" });
               }
@@ -108,28 +85,13 @@ function App() {
           </button>
         )}
 
-        {/* Slide Inspector (right panel in fullscreen) */}
-        <AnimatePresence>
-          {allowInspector && selectedSlide && (
-            <SlideInspector
-              key={selectedSlide.slidenum}
-              slide={selectedSlide}
-              onClose={() => navigate("..")}
-            />
-          )}
-        </AnimatePresence>
-
         {/* Carousel Container */}
         <div
           className={
             "relative w-full " +
             (displayMode === "fullscreen"
               ? "h-full flex items-center py-0"
-              : "py-5") +
-            " " +
-            (displayMode === "fullscreen" && allowInspector
-              ? "xl:mr-[380px]"
-              : "")
+              : "py-5")
           }
         >
           <div className="overflow-hidden w-full h-full" ref={emblaRef}>
@@ -138,8 +100,8 @@ function App() {
                 <div
                   key={slide.slidenum || index}
                   onClick={() => {
-                    if (displayMode === "fullscreen") {
-                      navigate(`/slide/${slide.slidenum}`);
+                    if (displayMode === "fullscreen" && slide.presentation_view_url) {
+                      window.open(slide.presentation_view_url, '_blank');
                     }
                   }}
                   className={displayMode === "fullscreen" ? "cursor-pointer" : ""}
@@ -221,16 +183,4 @@ function App() {
   );
 }
 
-function RouterRoot() {
-  return (
-    <Routes>
-      <Route path="*" element={<App />} />
-    </Routes>
-  );
-}
-
-createRoot(document.getElementById("slides-carousel-root")).render(
-  <BrowserRouter>
-    <RouterRoot />
-  </BrowserRouter>
-);
+createRoot(document.getElementById("slides-carousel-root")).render(<App />);
