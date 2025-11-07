@@ -9,7 +9,6 @@ import {
   Routes,
   Route,
   BrowserRouter,
-  Outlet,
 } from "react-router-dom";
 import { useWidgetProps } from "../use-widget-props";
 import { useOpenAiGlobal } from "../use-openai-global";
@@ -78,18 +77,15 @@ function App() {
     <>
       <div
         style={{
-          maxHeight,
-          height: displayMode === "fullscreen" ? maxHeight - 40 : "auto",
+          height: displayMode === "fullscreen" ? maxHeight : "auto",
         }}
         className={
-          "relative antialiased w-full min-h-[400px] overflow-hidden text-black bg-white " +
+          "relative antialiased w-full overflow-hidden text-black bg-white " +
           (displayMode === "fullscreen"
             ? "rounded-none border-0"
             : "border-0")
         }
       >
-        <Outlet />
-
         {/* Fullscreen Toggle Button */}
         {displayMode !== "fullscreen" && (
           <button
@@ -126,14 +122,18 @@ function App() {
         {/* Carousel Container */}
         <div
           className={
-            "relative py-5 " +
+            "relative w-full " +
+            (displayMode === "fullscreen"
+              ? "h-full flex items-center py-0"
+              : "py-5") +
+            " " +
             (displayMode === "fullscreen" && allowInspector
               ? "xl:mr-[380px]"
               : "")
           }
         >
-          <div className="overflow-hidden" ref={emblaRef}>
-            <div className="flex gap-4 px-5 items-stretch">
+          <div className="overflow-hidden w-full h-full" ref={emblaRef}>
+            <div className={`flex items-center ${displayMode === "fullscreen" ? "gap-6 px-8" : "gap-4 px-5"}`}>
               {slides.map((slide, index) => (
                 <div
                   key={slide.slidenum || index}
@@ -144,7 +144,7 @@ function App() {
                   }}
                   className={displayMode === "fullscreen" ? "cursor-pointer" : ""}
                 >
-                  <SlideCard slide={slide} />
+                  <SlideCard slide={slide} fullscreen={displayMode === "fullscreen"} />
                 </div>
               ))}
             </div>
@@ -224,9 +224,7 @@ function App() {
 function RouterRoot() {
   return (
     <Routes>
-      <Route path="*" element={<App />}>
-        <Route path="slide/:slideNum" element={<></>} />
-      </Route>
+      <Route path="*" element={<App />} />
     </Routes>
   );
 }

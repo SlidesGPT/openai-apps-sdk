@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function SlideCard({ slide }) {
+export default function SlideCard({ slide, fullscreen = false }) {
   const [imageLoaded, setImageLoaded] = React.useState(false);
   const [imageError, setImageError] = React.useState(false);
 
@@ -10,7 +10,7 @@ export default function SlideCard({ slide }) {
   const hasLink = slide.presentation_view_url;
 
   const cardContent = (
-    <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden ring ring-black/5 shadow-[0px_2px_6px_rgba(0,0,0,0.06)] transition-all duration-200 hover:ring-black/10 hover:shadow-[0px_4px_12px_rgba(0,0,0,0.1)]">
+    <div className={`relative w-full ${fullscreen ? "aspect-[16/9]" : "aspect-[16/9]"} rounded-2xl overflow-hidden ring ring-black/5 shadow-[0px_2px_6px_rgba(0,0,0,0.06)] transition-all duration-200 hover:ring-black/10 hover:shadow-[0px_4px_12px_rgba(0,0,0,0.1)]`}>
       {/* Loading Skeleton - Show when no image or image is loading */}
       {(!imageLoaded || !hasImage) && !imageError && (
         <div className="absolute inset-0 bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100 animate-pulse flex items-center justify-center">
@@ -47,8 +47,8 @@ export default function SlideCard({ slide }) {
   );
 
   return (
-    <div className="min-w-[280px] max-w-[280px] w-[75vw] sm:w-[280px] select-none">
-      {hasLink ? (
+    <div className={fullscreen ? "min-w-[600px] max-w-[600px] lg:min-w-[700px] lg:max-w-[700px] xl:min-w-[800px] xl:max-w-[800px] select-none" : "min-w-[280px] max-w-[280px] w-[75vw] sm:w-[280px] select-none"}>
+      {hasLink && !fullscreen ? (
         <a
           href={slide.presentation_view_url}
           target="_blank"
