@@ -334,6 +334,11 @@ async function createSlide(
 ): Promise<GenerateResponse> {
   const headers = generateOpenAIHeaders(presentationContext);
 
+  console.log(`\n🌐 API Call for slide ${slideData.slidenum}:`);
+  console.log(`   Presentation ID: ${presentationContext.presentationId}`);
+  console.log(`   User ID: ${presentationContext.userId}`);
+  console.log(`   Conversation ID: ${presentationContext.conversationId}`);
+
   const response = await fetch("https://staging.slidesgpt.com/chat/generate", {
     method: "POST",
     headers: {
@@ -352,10 +357,17 @@ async function createSlide(
     throw new Error(`Failed to create slide: ${response.status}`);
   }
 
+  const responseData = await response.json();
+  const parsed = GenerateResponseSchema.parse(responseData);
+
+  console.log(`   ✅ Slide ${slideData.slidenum} created successfully`);
+  console.log(`   Image URL: ${parsed.data.image_url}`);
+  console.log(`   Presentation URL: ${parsed.data.presentation_view_url}`);
+
   // Increment slide count
   presentationContext.slideCount++;
 
-  return GenerateResponseSchema.parse(await response.json());
+  return parsed;
 }
 
 // API call to search images
@@ -569,9 +581,13 @@ function createSlidesServer(): Server {
           console.log(`\n--- Creating ${args.slides_data.length} slides ---`);
           console.log(JSON.stringify(args.slides_data, null, 2));
 
-          const results = await Promise.all(
-            args.slides_data.map((slideData) => createSlide(slideData, presentation))
-          );
+          console.log(`\n🚀 Starting sequential API calls for ${args.slides_data.length} slides...`);
+          const results: GenerateResponse[] = [];
+          for (const slideData of args.slides_data) {
+            const result = await createSlide(slideData, presentation);
+            results.push(result);
+          }
+          console.log(`\n✅ All ${results.length} API calls completed`);
 
           const slides = args.slides_data.map((slideData, index) => ({
             title: slideData.title,
@@ -580,6 +596,11 @@ function createSlidesServer(): Server {
             image_url: results[index].data.image_url,
             presentation_view_url: results[index].data.presentation_view_url,
           }));
+
+          console.log(`\n📦 Returning ${slides.length} slides in response`);
+          slides.forEach(slide => {
+            console.log(`   - Slide ${slide.slidenum}: ${slide.title}`);
+          });
 
           return {
             content: [
