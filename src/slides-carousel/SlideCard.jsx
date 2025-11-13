@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function SlideCard({ slide, fullscreen = false }) {
+export default function SlideCard({ slide, fullscreen = false, isMobile = false }) {
   const [imageLoaded, setImageLoaded] = React.useState(false);
   const [imageError, setImageError] = React.useState(false);
 
@@ -8,6 +8,17 @@ export default function SlideCard({ slide, fullscreen = false }) {
 
   const hasImage = slide.image_url && slide.image_url.trim() !== "";
   const hasLink = slide.presentation_view_url;
+
+  // Determine sizing based on device and mode
+  const getSizeClasses = () => {
+    if (fullscreen) {
+      if (isMobile) {
+        return "w-[90vw] min-w-[90vw] max-w-[90vw]";
+      }
+      return "sm:min-w-[500px] sm:max-w-[500px] sm:w-[500px] lg:min-w-[700px] lg:max-w-[700px] lg:w-[700px] xl:min-w-[800px] xl:max-w-[800px] xl:w-[800px]";
+    }
+    return "min-w-[280px] max-w-[280px] w-[75vw] sm:w-[280px]";
+  };
 
   const cardContent = (
     <div className={`relative w-full ${fullscreen ? "aspect-[16/9]" : "aspect-[16/9]"} rounded-2xl overflow-hidden ring ring-black/5 shadow-[0px_2px_6px_rgba(0,0,0,0.06)] transition-all duration-200 hover:ring-black/10 hover:shadow-[0px_4px_12px_rgba(0,0,0,0.1)]`}>
@@ -47,7 +58,7 @@ export default function SlideCard({ slide, fullscreen = false }) {
   );
 
   return (
-    <div className={fullscreen ? "min-w-[600px] max-w-[600px] lg:min-w-[700px] lg:max-w-[700px] xl:min-w-[800px] xl:max-w-[800px] select-none" : "min-w-[280px] max-w-[280px] w-[75vw] sm:w-[280px] select-none"}>
+    <div className={`${getSizeClasses()} select-none`}>
       {hasLink && !fullscreen ? (
         <a
           href={slide.presentation_view_url}

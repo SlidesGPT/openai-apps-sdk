@@ -15,6 +15,12 @@ function App() {
   const { slides = [] } = props;
   const displayMode = useOpenAiGlobal("displayMode");
   const maxHeight = useMaxHeight() ?? undefined;
+  const userAgent = useOpenAiGlobal("userAgent");
+  const safeArea = useOpenAiGlobal("safeArea");
+
+  // Detect device type
+  const isMobile = userAgent?.device?.type === "mobile";
+  const isTouch = userAgent?.capabilities?.touch ?? false;
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: "center",
@@ -53,11 +59,19 @@ function App() {
     );
   }
 
+  // Calculate safe area padding for fullscreen mode
+  const safeAreaTop = safeArea?.insets?.top ?? 0;
+  const safeAreaBottom = safeArea?.insets?.bottom ?? 0;
+  const safeAreaLeft = safeArea?.insets?.left ?? 0;
+  const safeAreaRight = safeArea?.insets?.right ?? 0;
+
   return (
     <>
       <div
         style={{
           height: displayMode === "fullscreen" ? maxHeight : "auto",
+          paddingTop: displayMode === "fullscreen" && isMobile ? `${safeAreaTop}px` : undefined,
+          paddingBottom: displayMode === "fullscreen" && isMobile ? `${safeAreaBottom}px` : undefined,
         }}
         className={
           "relative antialiased w-full overflow-hidden text-black bg-white " +
@@ -90,12 +104,18 @@ function App() {
           className={
             "relative w-full " +
             (displayMode === "fullscreen"
-              ? "h-full flex items-center py-0"
+              ? "h-full flex items-center justify-center py-0"
               : "py-5")
           }
         >
-          <div className="overflow-hidden w-full h-full" ref={emblaRef}>
-            <div className={`flex items-center ${displayMode === "fullscreen" ? "gap-6 px-8" : "gap-4 px-5"}`}>
+          <div className={`overflow-hidden w-full ${displayMode === "fullscreen" ? "" : "h-full"}`} ref={emblaRef}>
+            <div
+              className={`flex items-center ${displayMode === "fullscreen" ? (isMobile ? "gap-3" : "gap-6 sm:gap-6") : "gap-4"}`}
+              style={{
+                paddingLeft: displayMode === "fullscreen" && isMobile ? `${Math.max(16, safeAreaLeft)}px` : displayMode === "fullscreen" ? "2rem" : "1.25rem",
+                paddingRight: displayMode === "fullscreen" && isMobile ? `${Math.max(16, safeAreaRight)}px` : displayMode === "fullscreen" ? "2rem" : "1.25rem",
+              }}
+            >
               {slides.map((slide, index) => (
                 <div
                   key={slide.slidenum || index}
@@ -106,7 +126,11 @@ function App() {
                   }}
                   className={displayMode === "fullscreen" ? "cursor-pointer" : ""}
                 >
-                  <SlideCard slide={slide} fullscreen={displayMode === "fullscreen"} />
+                  <SlideCard
+                    slide={slide}
+                    fullscreen={displayMode === "fullscreen"}
+                    isMobile={isMobile}
+                  />
                 </div>
               ))}
             </div>
