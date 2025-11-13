@@ -74,13 +74,68 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..");
 const ASSETS_DIR = path.resolve(ROOT_DIR, "assets");
 
+// Presentation store to track conversation continuity
+type PresentationContext = {
+  presentationId: string;
+  conversationId: string;
+  userId: string;
+  slideCount: number;
+  createdAt: Date;
+  lastUsed: Date;
+};
+
+const presentations = new Map<string, PresentationContext>();
+
+// Cleanup old presentations periodically (keep for 24 hours)
+setInterval(() => {
+  const now = new Date();
+  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+  for (const [id, context] of presentations.entries()) {
+    if (context.lastUsed < twentyFourHoursAgo) {
+      console.log(`🗑️  Cleaning up old presentation: ${id} (last used: ${context.lastUsed.toISOString()})`);
+      presentations.delete(id);
+    }
+  }
+}, 60 * 60 * 1000); // Run every hour
+
+// Helper function to generate a new presentation ID
+function generatePresentationId(): string {
+  return `pres_${crypto.randomBytes(16).toString("hex")}`;
+}
+
+// Helper function to get or create presentation context
+function getOrCreatePresentation(presentationId?: string): PresentationContext {
+  if (presentationId && presentations.has(presentationId)) {
+    const context = presentations.get(presentationId)!;
+    context.lastUsed = new Date();
+    console.log(`\n📂 Using existing presentation: ${presentationId}`);
+    console.log(`   Slide count: ${context.slideCount}`);
+    return context;
+  }
+
+  // Create new presentation
+  const newPresentationId = presentationId || generatePresentationId();
+  const context: PresentationContext = {
+    presentationId: newPresentationId,
+    conversationId: crypto.randomBytes(16).toString("hex"),
+    userId: `mcp-user-${crypto.randomBytes(8).toString("hex")}`,
+    slideCount: 0,
+    createdAt: new Date(),
+    lastUsed: new Date(),
+  };
+
+  presentations.set(newPresentationId, context);
+  console.log(`\n📂 Created new presentation: ${newPresentationId}`);
+
+  return context;
+}
+
 // Helper function to generate OpenAI-compatible headers
-function generateOpenAIHeaders() {
-  const userId = `mcp-user-${crypto.randomBytes(8).toString("hex")}`;
-  const conversationId = crypto.randomBytes(16).toString("hex");
+function generateOpenAIHeaders(presentationContext: PresentationContext) {
   return {
-    "openai-ephemeral-user-id": userId,
-    "openai-conversation-id": conversationId,
+    "openai-ephemeral-user-id": presentationContext.userId,
+    "openai-conversation-id": presentationContext.conversationId,
   };
 }
 
@@ -162,6 +217,11 @@ widgets.forEach((widget) => {
 const slideViewerInputSchema = {
   type: "object",
   properties: {
+    presentation_id: {
+      type: "string",
+      default: "",
+      description: "Presentation ID to maintain continuity across slides in the same conversation. Use empty string '' for the first slide, then ALWAYS pass back the ID returned in the response for subsequent slides. If you pass an empty string for slide 2+, a NEW separate presentation will be created.",
+    },
     slide_data: {
       type: "object",
       description: "Complete slide structure with title, subtitle, slidenum, body, talktrack, and sources",
@@ -201,13 +261,18 @@ const slideViewerInputSchema = {
       required: ["title", "subtitle", "slidenum", "image_id", "body", "talktrack", "sources"],
     },
   },
-  required: ["slide_data"],
+  required: ["presentation_id", "slide_data"],
   additionalProperties: false,
 } as const;
 
 const slideCarouselInputSchema = {
   type: "object",
   properties: {
+    presentation_id: {
+      type: "string",
+      default: "",
+      description: "Presentation ID to maintain continuity across slides in the same conversation. Use empty string '' for the first batch of slides, then ALWAYS pass back the ID returned in the response for subsequent batches. If you pass an empty string when adding more slides, a NEW separate presentation will be created.",
+    },
     slides_data: {
       type: "array",
       description: "Array of slide structures",
@@ -226,7 +291,7 @@ const slideCarouselInputSchema = {
       },
     },
   },
-  required: ["slides_data"],
+  required: ["presentation_id", "slides_data"],
   additionalProperties: false,
 } as const;
 
@@ -243,10 +308,18 @@ const searchInputSchema = {
 } as const;
 
 const slideViewerInputParser = z.object({
+  presentation_id: z
+    .string()
+    .transform((val) => (val === "" ? undefined : val))
+    .optional(),
   slide_data: SlideSchema,
 });
 
 const slideCarouselInputParser = z.object({
+  presentation_id: z
+    .string()
+    .transform((val) => (val === "" ? undefined : val))
+    .optional(),
   slides_data: z.array(SlideSchema),
 });
 
@@ -255,8 +328,11 @@ const searchInputParser = z.object({
 });
 
 // API call to create slide
-async function createSlide(slideData: Slide): Promise<GenerateResponse> {
-  const headers = generateOpenAIHeaders();
+async function createSlide(
+  slideData: Slide,
+  presentationContext: PresentationContext
+): Promise<GenerateResponse> {
+  const headers = generateOpenAIHeaders(presentationContext);
 
   const response = await fetch("https://staging.slidesgpt.com/chat/generate", {
     method: "POST",
@@ -275,6 +351,9 @@ async function createSlide(slideData: Slide): Promise<GenerateResponse> {
     console.error("API Error:", errorText);
     throw new Error(`Failed to create slide: ${response.status}`);
   }
+
+  // Increment slide count
+  presentationContext.slideCount++;
 
   return GenerateResponseSchema.parse(await response.json());
 }
@@ -302,7 +381,7 @@ async function searchImages(caption: string): Promise<any[]> {
 const tools: Tool[] = [
   {
     name: "slide-viewer",
-    description: "Creates a professional presentation slide from structured data. Generates a slide with title, subtitle, bullet points, and talk track. The slide will be displayed in an interactive viewer.",
+    description: "Creates a professional presentation slide from structured data. Generates a slide with title, subtitle, bullet points, and talk track. The slide will be displayed in an interactive viewer. IMPORTANT: When creating multiple slides in the same conversation, always pass the presentation_id returned from the previous slide creation to maintain presentation continuity.",
     inputSchema: slideViewerInputSchema,
     title: "Create Slide",
     _meta: widgetMeta(widgetsById.get("slide-viewer")!),
@@ -314,7 +393,7 @@ const tools: Tool[] = [
   },
   {
     name: "slide-carousel",
-    description: "Creates multiple presentation slides at once and displays them in a scrollable carousel. Each slide includes title, subtitle, bullet points, and talk track.",
+    description: "Creates multiple presentation slides at once and displays them in a scrollable carousel. Each slide includes title, subtitle, bullet points, and talk track. IMPORTANT: When adding more slides to an existing presentation, always pass the presentation_id from the previous tool call to maintain presentation continuity.",
     inputSchema: slideCarouselInputSchema,
     title: "Create Slides Carousel",
     _meta: widgetMeta(widgetsById.get("slide-carousel")!),
@@ -438,19 +517,29 @@ function createSlidesServer(): Server {
           const widget = widgetsById.get("slide-viewer")!;
           const args = slideViewerInputParser.parse(request.params.arguments ?? {});
 
+          console.log("\n--- Presentation ID from request ---");
+          console.log(
+            `Raw: "${request.params.arguments?.presentation_id}"`,
+            `Parsed: "${args.presentation_id || "undefined"}"`
+          );
+
+          // Get or create presentation context
+          const presentation = getOrCreatePresentation(args.presentation_id);
+
           console.log("\n--- Parsed slide_data ---");
           console.log(JSON.stringify(args.slide_data, null, 2));
 
-          const result = await createSlide(args.slide_data);
+          const result = await createSlide(args.slide_data, presentation);
 
           return {
             content: [
               {
                 type: "text",
-                text: `✅ Slide ${args.slide_data.slidenum} created successfully!\n\nTitle: "${args.slide_data.title}"\nSubtitle: ${args.slide_data.subtitle}`,
+                text: `✅ Slide ${args.slide_data.slidenum} created successfully!\n\nTitle: "${args.slide_data.title}"\nSubtitle: ${args.slide_data.subtitle}\n\n🔑 IMPORTANT - Save this Presentation ID:\n${presentation.presentationId}\n\nFor any additional slides in THIS conversation, you MUST include:\n"presentation_id": "${presentation.presentationId}"\nin the tool parameters.`,
               },
             ],
             structuredContent: {
+              presentation_id: presentation.presentationId,
               slide: {
                 title: args.slide_data.title,
                 subtitle: args.slide_data.subtitle,
@@ -468,11 +557,20 @@ function createSlidesServer(): Server {
           const widget = widgetsById.get("slide-carousel")!;
           const args = slideCarouselInputParser.parse(request.params.arguments ?? {});
 
+          console.log("\n--- Presentation ID from request ---");
+          console.log(
+            `Raw: "${request.params.arguments?.presentation_id}"`,
+            `Parsed: "${args.presentation_id || "undefined"}"`
+          );
+
+          // Get or create presentation context
+          const presentation = getOrCreatePresentation(args.presentation_id);
+
           console.log(`\n--- Creating ${args.slides_data.length} slides ---`);
           console.log(JSON.stringify(args.slides_data, null, 2));
 
           const results = await Promise.all(
-            args.slides_data.map((slideData) => createSlide(slideData))
+            args.slides_data.map((slideData) => createSlide(slideData, presentation))
           );
 
           const slides = args.slides_data.map((slideData, index) => ({
@@ -487,10 +585,11 @@ function createSlidesServer(): Server {
             content: [
               {
                 type: "text",
-                text: `✅ Created ${slides.length} slides successfully!\n\n${slides.map((s) => `Slide ${s.slidenum}: "${s.title}"`).join("\n")}`,
+                text: `✅ Created ${slides.length} slides successfully!\n\n${slides.map((s) => `Slide ${s.slidenum}: "${s.title}"`).join("\n")}\n\n🔑 IMPORTANT - Save this Presentation ID:\n${presentation.presentationId}\n\nFor any additional slides in THIS conversation, you MUST include:\n"presentation_id": "${presentation.presentationId}"\nin the tool parameters.`,
               },
             ],
             structuredContent: {
+              presentation_id: presentation.presentationId,
               slides,
             },
             _meta: widgetMeta(widget),
