@@ -369,14 +369,20 @@ function createSlidesServer(): Server {
 
   server.setRequestHandler(
     ListResourcesRequestSchema,
-    async (_request: ListResourcesRequest) => ({
-      resources,
-    })
+    async (_request: ListResourcesRequest) => {
+      console.log("\n=== LIST RESOURCES REQUEST ===");
+      console.log("Timestamp:", new Date().toISOString());
+      return { resources };
+    }
   );
 
   server.setRequestHandler(
     ReadResourceRequestSchema,
     async (request: ReadResourceRequest) => {
+      console.log("\n=== READ RESOURCE REQUEST ===");
+      console.log("URI:", request.params.uri);
+      console.log("Timestamp:", new Date().toISOString());
+
       const widget = widgetsByUri.get(request.params.uri);
 
       if (!widget) {
@@ -405,9 +411,12 @@ function createSlidesServer(): Server {
 
   server.setRequestHandler(
     ListToolsRequestSchema,
-    async (_request: ListToolsRequest) => ({
-      tools,
-    })
+    async (_request: ListToolsRequest) => {
+      console.log("\n=== LIST TOOLS REQUEST ===");
+      console.log("Timestamp:", new Date().toISOString());
+      console.log("Returning", tools.length, "tools");
+      return { tools };
+    }
   );
 
   server.setRequestHandler(
@@ -415,13 +424,22 @@ function createSlidesServer(): Server {
     async (request: CallToolRequest) => {
       const toolName = request.params.name;
 
+      console.log("\n=== TOOL CALL RECEIVED ===");
+      console.log("Tool Name:", toolName);
+      console.log("Timestamp:", new Date().toISOString());
+      console.log("\n--- Request Metadata (_meta) ---");
+      console.log(JSON.stringify(request.params._meta, null, 2));
+      console.log("\n--- Arguments ---");
+      console.log(JSON.stringify(request.params.arguments, null, 2));
+
       try {
         // Handle slide-viewer tool
         if (toolName === "slide-viewer") {
           const widget = widgetsById.get("slide-viewer")!;
           const args = slideViewerInputParser.parse(request.params.arguments ?? {});
 
-          console.log("Creating slide with data:", JSON.stringify(args.slide_data, null, 2));
+          console.log("\n--- Parsed slide_data ---");
+          console.log(JSON.stringify(args.slide_data, null, 2));
 
           const result = await createSlide(args.slide_data);
 
@@ -450,7 +468,8 @@ function createSlidesServer(): Server {
           const widget = widgetsById.get("slide-carousel")!;
           const args = slideCarouselInputParser.parse(request.params.arguments ?? {});
 
-          console.log(`Creating ${args.slides_data.length} slides...`);
+          console.log(`\n--- Creating ${args.slides_data.length} slides ---`);
+          console.log(JSON.stringify(args.slides_data, null, 2));
 
           const results = await Promise.all(
             args.slides_data.map((slideData) => createSlide(slideData))
@@ -482,7 +501,8 @@ function createSlidesServer(): Server {
         if (toolName === "search-images") {
           const args = searchInputParser.parse(request.params.arguments ?? {});
 
-          console.log("Searching images for:", args.caption);
+          console.log("\n--- Searching images ---");
+          console.log("Caption:", args.caption);
 
           const images = await searchImages(args.caption);
 
@@ -550,6 +570,10 @@ async function handleSseRequest(res: ServerResponse) {
   const transport = new SSEServerTransport(postPath, res);
   const sessionId = transport.sessionId;
 
+  console.log("\n=== NEW SSE SESSION ===");
+  console.log("Session ID:", sessionId);
+  console.log("Timestamp:", new Date().toISOString());
+
   sessions.set(sessionId, { server, transport });
 
   transport.onclose = async () => {
@@ -580,6 +604,10 @@ async function handlePostMessage(
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "content-type");
   const sessionId = url.searchParams.get("sessionId");
+
+  console.log("\n=== INCOMING POST MESSAGE ===");
+  console.log("Session ID:", sessionId);
+  console.log("Headers:", JSON.stringify(req.headers, null, 2));
 
   if (!sessionId) {
     res.writeHead(400).end("Missing sessionId query parameter");
