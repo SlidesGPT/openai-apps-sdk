@@ -17,6 +17,7 @@ const GLOBAL_CSS_LIST = [path.resolve("src/index.css")];
 const targets: string[] = [
   "slides-viewer",
   "slides-carousel",
+  "theme-picker",
 ];
 const builtNames: string[] = [];
 

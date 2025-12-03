@@ -1,12 +1,12 @@
+import * as crypto from "node:crypto";
+import fs from "node:fs";
 import {
   createServer,
   type IncomingMessage,
   type ServerResponse,
 } from "node:http";
-import fs from "node:fs";
 import path from "node:path";
 import { URL, fileURLToPath } from "node:url";
-import * as crypto from "node:crypto";
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
@@ -47,7 +47,10 @@ const SlideSchema = z.object({
   body: z.array(BulletPointSchema).describe("Array of bullet points"),
   talktrack: z.string().describe("Detailed talktrack of the slide"),
   sources: z.array(SourceSchema).describe("Array of sources"),
-  force_edit: z.boolean().optional().describe("If true, overwrite existing slide"),
+  force_edit: z
+    .boolean()
+    .optional()
+    .describe("If true, overwrite existing slide"),
 });
 
 const GenerateResponseSchema = z.object({
@@ -82,6 +85,9 @@ type PresentationContext = {
   slideCount: number;
   createdAt: Date;
   lastUsed: Date;
+  themeId: string | null; // Current theme applied to the presentation
+  themeOffered: boolean; // Whether theme options have been shown
+  deckId: string | null; // Actual deck ID from the API (for apply-theme)
 };
 
 const presentations = new Map<string, PresentationContext>();
@@ -93,7 +99,9 @@ setInterval(() => {
 
   for (const [id, context] of presentations.entries()) {
     if (context.lastUsed < twentyFourHoursAgo) {
-      console.log(`🗑️  Cleaning up old presentation: ${id} (last used: ${context.lastUsed.toISOString()})`);
+      console.log(
+        `🗑️  Cleaning up old presentation: ${id} (last used: ${context.lastUsed.toISOString()})`
+      );
       presentations.delete(id);
     }
   }
@@ -123,12 +131,22 @@ function getOrCreatePresentation(presentationId?: string): PresentationContext {
     slideCount: 0,
     createdAt: new Date(),
     lastUsed: new Date(),
+    themeId: null,
+    themeOffered: false,
+    deckId: null,
   };
 
   presentations.set(newPresentationId, context);
   console.log(`\n📂 Created new presentation: ${newPresentationId}`);
 
   return context;
+}
+
+// Helper function to extract deck ID from presentation view URL
+// URL format: https://app.slidesgpt.com//view/{deckId}
+function extractDeckIdFromUrl(url: string): string | null {
+  const match = url.match(/\/view\/([a-zA-Z0-9]+)/);
+  return match ? match[1] : null;
 }
 
 // Helper function to generate OpenAI-compatible headers
@@ -203,7 +221,212 @@ const widgets: SlideWidget[] = [
     html: readWidgetHtml("slides-carousel"),
     responseText: "Slides carousel created successfully!",
   },
+  {
+    id: "theme-picker",
+    title: "Choose Theme",
+    templateUri: "ui://widget/theme-picker.html",
+    invoking: "Loading themes...",
+    invoked: "Themes loaded",
+    html: readWidgetHtml("theme-picker"),
+    responseText: "Theme picker loaded!",
+  },
 ];
+
+// Theme library - 22 themes across 3 categories
+const THEME_IDS = [
+  // Urban themes (16)
+  "copenhagen-light",
+  "copenhagen-dark",
+  "tokyo-light",
+  "tokyo-dark",
+  "paris-light",
+  "paris-dark",
+  "berlin-light",
+  "berlin-dark",
+  "new-york-light",
+  "new-york-dark",
+  "la-light",
+  "la-dark",
+  "zurich-light",
+  "zurich-dark",
+  "shanghai-light",
+  "shanghai-dark",
+  // Minimal themes (4)
+  "minimal-pure-light",
+  "minimal-pure-dark",
+  "zen-gray-light",
+  "zen-gray-dark",
+  // Gradient themes (6)
+  "aurora-glow-1",
+  "aurora-glow-2",
+  "aurora-glow-3",
+  "aurora-glow-4",
+  "cosmic-pulse-light",
+  "cosmic-pulse-dark",
+] as const;
+
+type ThemeId = (typeof THEME_IDS)[number];
+
+// Theme metadata for recommendations
+const THEME_METADATA: Record<
+  ThemeId,
+  { name: string; category: string; description: string }
+> = {
+  "copenhagen-light": {
+    name: "Copenhagen",
+    category: "urban",
+    description: "Soft Nordic Minimalism",
+  },
+  "copenhagen-dark": {
+    name: "Copenhagen Dark",
+    category: "urban",
+    description: "Soft Nordic Minimalism",
+  },
+  "tokyo-light": {
+    name: "Tokyo",
+    category: "urban",
+    description: "Neon Brutalism",
+  },
+  "tokyo-dark": {
+    name: "Tokyo Dark",
+    category: "urban",
+    description: "Neon Brutalism",
+  },
+  "paris-light": {
+    name: "Paris",
+    category: "urban",
+    description: "Modern Heritage",
+  },
+  "paris-dark": {
+    name: "Paris Dark",
+    category: "urban",
+    description: "Modern Heritage",
+  },
+  "berlin-light": {
+    name: "Berlin",
+    category: "urban",
+    description: "Industrial Monochrome",
+  },
+  "berlin-dark": {
+    name: "Berlin Dark",
+    category: "urban",
+    description: "Industrial Monochrome",
+  },
+  "new-york-light": {
+    name: "New York",
+    category: "urban",
+    description: "Vintage Yellow Cab",
+  },
+  "new-york-dark": {
+    name: "New York Dark",
+    category: "urban",
+    description: "Vintage Yellow Cab",
+  },
+  "la-light": { name: "LA", category: "urban", description: "Sunset Pop" },
+  "la-dark": { name: "LA Dark", category: "urban", description: "Sunset Pop" },
+  "zurich-light": {
+    name: "Zürich",
+    category: "urban",
+    description: "Modern Swiss Utility",
+  },
+  "zurich-dark": {
+    name: "Zürich Dark",
+    category: "urban",
+    description: "Modern Swiss Utility",
+  },
+  "shanghai-light": {
+    name: "Shanghai",
+    category: "urban",
+    description: "Techno-Global Commerce",
+  },
+  "shanghai-dark": {
+    name: "Shanghai Dark",
+    category: "urban",
+    description: "Techno-Global Commerce",
+  },
+  "minimal-pure-light": {
+    name: "Minimal Pure",
+    category: "minimal",
+    description: "Ultra Clean",
+  },
+  "minimal-pure-dark": {
+    name: "Minimal Pure Dark",
+    category: "minimal",
+    description: "Ultra Clean",
+  },
+  "zen-gray-light": {
+    name: "Zen Gray",
+    category: "minimal",
+    description: "Calm Neutral Tones",
+  },
+  "zen-gray-dark": {
+    name: "Zen Gray Dark",
+    category: "minimal",
+    description: "Calm Neutral Tones",
+  },
+  "aurora-glow-1": {
+    name: "Aurora Glow",
+    category: "gradient",
+    description: "Soft Pastel Gradient",
+  },
+  "aurora-glow-2": {
+    name: "Aurora Glow Pink",
+    category: "gradient",
+    description: "Soft Pastel Gradient",
+  },
+  "aurora-glow-3": {
+    name: "Aurora Glow Blue",
+    category: "gradient",
+    description: "Soft Pastel Gradient",
+  },
+  "aurora-glow-4": {
+    name: "Aurora Glow Teal",
+    category: "gradient",
+    description: "Soft Pastel Gradient",
+  },
+  "cosmic-pulse-light": {
+    name: "Cosmic Pulse",
+    category: "gradient",
+    description: "High-Energy Neon Gradient",
+  },
+  "cosmic-pulse-dark": {
+    name: "Cosmic Pulse Dark",
+    category: "gradient",
+    description: "High-Energy Neon Gradient",
+  },
+};
+
+// Theme recommendations by content type
+const THEME_RECOMMENDATIONS: Record<string, ThemeId[]> = {
+  corporate: [
+    "zurich-light",
+    "berlin-light",
+    "minimal-pure-light",
+    "shanghai-light",
+  ],
+  finance: [
+    "zurich-light",
+    "shanghai-dark",
+    "berlin-dark",
+    "minimal-pure-dark",
+  ],
+  tech: ["tokyo-light", "tokyo-dark", "shanghai-dark", "cosmic-pulse-light"],
+  startup: ["tokyo-dark", "la-light", "aurora-glow-1", "cosmic-pulse-light"],
+  creative: ["la-light", "la-dark", "aurora-glow-2", "aurora-glow-1"],
+  marketing: [
+    "la-light",
+    "new-york-light",
+    "aurora-glow-1",
+    "cosmic-pulse-light",
+  ],
+  luxury: ["paris-light", "paris-dark", "copenhagen-light", "copenhagen-dark"],
+  education: [
+    "minimal-pure-light",
+    "zen-gray-light",
+    "zurich-light",
+    "berlin-light",
+  ],
+};
 
 const widgetsById = new Map<string, SlideWidget>();
 const widgetsByUri = new Map<string, SlideWidget>();
@@ -220,11 +443,13 @@ const slideViewerInputSchema = {
     presentation_id: {
       type: "string",
       default: "",
-      description: "Presentation ID to maintain continuity across slides in the same conversation. Use empty string '' for the first slide, then ALWAYS pass back the ID returned in the response for subsequent slides. If you pass an empty string for slide 2+, a NEW separate presentation will be created.",
+      description:
+        "Presentation ID to maintain continuity across slides in the same conversation. Use empty string '' for the first slide, then ALWAYS pass back the ID returned in the response for subsequent slides. If you pass an empty string for slide 2+, a NEW separate presentation will be created.",
     },
     slide_data: {
       type: "object",
-      description: "Complete slide structure with title, subtitle, slidenum, body, talktrack, and sources",
+      description:
+        "Complete slide structure with title, subtitle, slidenum, body, talktrack, and sources",
       properties: {
         title: { type: "string", description: "Title of the slide" },
         subtitle: { type: "string", description: "Subtitle of the slide" },
@@ -258,7 +483,15 @@ const slideViewerInputSchema = {
         },
         force_edit: { type: "boolean", description: "Overwrite if exists" },
       },
-      required: ["title", "subtitle", "slidenum", "image_id", "body", "talktrack", "sources"],
+      required: [
+        "title",
+        "subtitle",
+        "slidenum",
+        "image_id",
+        "body",
+        "talktrack",
+        "sources",
+      ],
     },
   },
   required: ["presentation_id", "slide_data"],
@@ -271,7 +504,8 @@ const slideCarouselInputSchema = {
     presentation_id: {
       type: "string",
       default: "",
-      description: "Presentation ID to maintain continuity across slides in the same conversation. Use empty string '' for the first batch of slides, then ALWAYS pass back the ID returned in the response for subsequent batches. If you pass an empty string when adding more slides, a NEW separate presentation will be created.",
+      description:
+        "Presentation ID to maintain continuity across slides in the same conversation. Use empty string '' for the first batch of slides, then ALWAYS pass back the ID returned in the response for subsequent batches. If you pass an empty string when adding more slides, a NEW separate presentation will be created.",
     },
     slides_data: {
       type: "array",
@@ -283,9 +517,30 @@ const slideCarouselInputSchema = {
           subtitle: { type: "string" },
           slidenum: { type: "number" },
           image_id: { type: "string" },
-          body: { type: "array" },
+          body: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                point: { type: "string" },
+                description: { type: "string" },
+                icon: { type: "string" },
+              },
+              required: ["point", "description", "icon"],
+            },
+          },
           talktrack: { type: "string" },
-          sources: { type: "array" },
+          sources: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                title: { type: "string" },
+                link: { type: "string" },
+              },
+              required: ["title", "link"],
+            },
+          },
           force_edit: { type: "boolean" },
         },
       },
@@ -304,6 +559,42 @@ const searchInputSchema = {
     },
   },
   required: ["caption"],
+  additionalProperties: false,
+} as const;
+
+const applyThemeInputSchema = {
+  type: "object",
+  properties: {
+    presentation_id: {
+      type: "string",
+      description:
+        "The presentation ID to apply the theme to. This is required and should be the ID returned from slide creation.",
+    },
+    theme_id: {
+      type: "string",
+      enum: THEME_IDS as unknown as string[],
+      description:
+        "The theme ID to apply. Choose from: copenhagen-light/dark, tokyo-light/dark, paris-light/dark, berlin-light/dark, new-york-light/dark, la-light/dark, zurich-light/dark, shanghai-light/dark, minimal-pure-light/dark, zen-gray-light/dark, aurora-glow-1/2/3/4, cosmic-pulse-light/dark",
+    },
+  },
+  required: ["presentation_id", "theme_id"],
+  additionalProperties: false,
+} as const;
+
+const showThemePickerInputSchema = {
+  type: "object",
+  properties: {
+    presentation_id: {
+      type: "string",
+      description: "The presentation ID to show themes for.",
+    },
+    recommended_theme_id: {
+      type: "string",
+      description:
+        "Optional recommended theme ID based on the presentation content.",
+    },
+  },
+  required: ["presentation_id"],
   additionalProperties: false,
 } as const;
 
@@ -327,6 +618,16 @@ const searchInputParser = z.object({
   caption: z.string(),
 });
 
+const applyThemeInputParser = z.object({
+  presentation_id: z.string(),
+  theme_id: z.enum(THEME_IDS),
+});
+
+const showThemePickerInputParser = z.object({
+  presentation_id: z.string(),
+  recommended_theme_id: z.string().optional(),
+});
+
 // API call to create slide
 async function createSlide(
   slideData: Slide,
@@ -339,17 +640,20 @@ async function createSlide(
   console.log(`   User ID: ${presentationContext.userId}`);
   console.log(`   Conversation ID: ${presentationContext.conversationId}`);
 
-  const response = await fetch("https://staging.slidesgpt.com/chat/generate", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...headers,
-    },
-    body: JSON.stringify({
-      v: "2",
-      slidecode: slideData,
-    }),
-  });
+  const response = await fetch(
+    "https://slidesgpt-next-git-feat-custom-themes-in-gpt-slidesgpt.vercel.app/chat/generate",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...headers,
+      },
+      body: JSON.stringify({
+        v: "2",
+        slidecode: slideData,
+      }),
+    }
+  );
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -372,7 +676,9 @@ async function createSlide(
 
 // API call to search images
 async function searchImages(caption: string): Promise<any[]> {
-  const searchUrl = new URL("https://staging.slidesgpt.com/chat/search");
+  const searchUrl = new URL(
+    "https://slidesgpt-next-git-feat-custom-themes-in-gpt-slidesgpt.vercel.app/chat/search"
+  );
   searchUrl.searchParams.append("caption", caption);
 
   const response = await fetch(searchUrl.toString(), {
@@ -390,10 +696,86 @@ async function searchImages(caption: string): Promise<any[]> {
   return Array.isArray(data) ? data : [];
 }
 
+// API call to apply theme to presentation
+type ApplyThemeResponse = {
+  success: boolean;
+  theme: { id: string; name: string };
+  slides: Array<{ slideNum: number; image_url: string }>;
+  presentation_view_url: string;
+  message: string;
+};
+
+async function applyTheme(
+  deckId: string,
+  themeId: ThemeId,
+  presentationContext: PresentationContext
+): Promise<ApplyThemeResponse> {
+  const headers = generateOpenAIHeaders(presentationContext);
+
+  console.log(`\n🎨 Applying theme "${themeId}" to deck ${deckId}`);
+
+  const response = await fetch(
+    "https://slidesgpt-next-git-feat-custom-themes-in-gpt-slidesgpt.vercel.app/chat/apply-theme",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...headers,
+      },
+      body: JSON.stringify({
+        deckId,
+        themeId,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("Apply Theme API Error:", errorText);
+    throw new Error(`Failed to apply theme: ${response.status}`);
+  }
+
+  const responseData = (await response.json()) as ApplyThemeResponse;
+
+  // Update presentation context with the new theme
+  presentationContext.themeId = themeId;
+
+  console.log(`   ✅ Theme "${themeId}" applied successfully`);
+  console.log(`   Re-rendered ${responseData.slides?.length || 0} slides`);
+
+  return responseData;
+}
+
+// Generate theme options object for first slide response
+function generateThemeOptions(recommendedThemeId?: ThemeId) {
+  const allThemes = THEME_IDS.map((id) => ({
+    id,
+    name: THEME_METADATA[id].name,
+    category: THEME_METADATA[id].category,
+    description: THEME_METADATA[id].description,
+  }));
+
+  const categories = {
+    urban: allThemes.filter((t) => t.category === "urban"),
+    minimal: allThemes.filter((t) => t.category === "minimal"),
+    gradient: allThemes.filter((t) => t.category === "gradient"),
+  };
+
+  return {
+    message: `Your presentation has been created! Would you like to apply a custom theme? We have 22 themes across 3 categories.`,
+    categories,
+    all_themes: allThemes,
+    total_themes: 22,
+    recommended_theme_id: recommendedThemeId,
+    instructions: `To apply a theme, say "Use [theme name]" (e.g., "Use Tokyo Dark") or use the apply-theme tool with the theme_id.`,
+  };
+}
+
 const tools: Tool[] = [
   {
     name: "slide-viewer",
-    description: "Creates a professional presentation slide from structured data. Generates a slide with title, subtitle, bullet points, and talk track. The slide will be displayed in an interactive viewer. IMPORTANT: When creating multiple slides in the same conversation, always pass the presentation_id returned from the previous slide creation to maintain presentation continuity.",
+    description:
+      "Creates a professional presentation slide from structured data. Generates a slide with title, subtitle, bullet points, and talk track. The slide will be displayed in an interactive viewer. IMPORTANT: When creating multiple slides in the same conversation, always pass the presentation_id returned from the previous slide creation to maintain presentation continuity.",
     inputSchema: slideViewerInputSchema,
     title: "Create Slide",
     _meta: widgetMeta(widgetsById.get("slide-viewer")!),
@@ -405,7 +787,8 @@ const tools: Tool[] = [
   },
   {
     name: "slide-carousel",
-    description: "Creates multiple presentation slides at once and displays them in a scrollable carousel. Each slide includes title, subtitle, bullet points, and talk track. IMPORTANT: When adding more slides to an existing presentation, always pass the presentation_id from the previous tool call to maintain presentation continuity.",
+    description:
+      "Creates multiple presentation slides at once and displays them in a scrollable carousel. Each slide includes title, subtitle, bullet points, and talk track. IMPORTANT: When adding more slides to an existing presentation, always pass the presentation_id from the previous tool call to maintain presentation continuity.",
     inputSchema: slideCarouselInputSchema,
     title: "Create Slides Carousel",
     _meta: widgetMeta(widgetsById.get("slide-carousel")!),
@@ -417,9 +800,35 @@ const tools: Tool[] = [
   },
   {
     name: "search-images",
-    description: "Search for professional images to use in slides. Returns image IDs that can be used in the slide_data's image_id field.",
+    description:
+      "Search for professional images to use in slides. Returns image IDs that can be used in the slide_data's image_id field.",
     inputSchema: searchInputSchema,
     title: "Search Images",
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: false,
+      readOnlyHint: true,
+    },
+  },
+  {
+    name: "apply-theme",
+    description:
+      "Apply a visual theme to the presentation. This will re-render all slides with the new theme. Available themes include: Urban (Copenhagen, Tokyo, Paris, Berlin, New York, LA, Zürich, Shanghai - each with light/dark), Minimal (Minimal Pure, Zen Gray - light/dark), Gradient (Aurora Glow 1-4, Cosmic Pulse light/dark). Call this after creating slides when the user wants to change the presentation style.",
+    inputSchema: applyThemeInputSchema,
+    title: "Apply Theme",
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: false,
+      readOnlyHint: false,
+    },
+  },
+  {
+    name: "show-theme-picker",
+    description:
+      "Display an interactive theme picker widget to the user. Use this to let the user visually browse and select from 22 available themes across 3 categories (Urban, Minimal, Gradient). The widget shows theme previews with colors and fonts.",
+    inputSchema: showThemePickerInputSchema,
+    title: "Show Theme Picker",
+    _meta: widgetMeta(widgetsById.get("theme-picker")!),
     annotations: {
       destructiveHint: false,
       openWorldHint: false,
@@ -527,7 +936,9 @@ function createSlidesServer(): Server {
         // Handle slide-viewer tool
         if (toolName === "slide-viewer") {
           const widget = widgetsById.get("slide-viewer")!;
-          const args = slideViewerInputParser.parse(request.params.arguments ?? {});
+          const args = slideViewerInputParser.parse(
+            request.params.arguments ?? {}
+          );
 
           console.log("\n--- Presentation ID from request ---");
           console.log(
@@ -543,11 +954,34 @@ function createSlidesServer(): Server {
 
           const result = await createSlide(args.slide_data, presentation);
 
+          // Extract and store the actual deck ID from the API response
+          if (!presentation.deckId && result.data.presentation_view_url) {
+            const extractedDeckId = extractDeckIdFromUrl(result.data.presentation_view_url);
+            if (extractedDeckId) {
+              presentation.deckId = extractedDeckId;
+              console.log(`   📍 Extracted deck ID: ${extractedDeckId}`);
+            }
+          }
+
+          // Check if this is the first slide and theme hasn't been offered yet
+          const isFirstSlide =
+            presentation.slideCount === 1 &&
+            !presentation.themeOffered &&
+            !presentation.themeId;
+          let themeMessage = "";
+          let themeOptions = {};
+
+          if (isFirstSlide) {
+            presentation.themeOffered = true;
+            themeOptions = generateThemeOptions();
+            themeMessage = `\n\n🎨 **Theme Options Available!**\nWould you like to customize your presentation's look? We have 22 themes across 3 categories (Urban, Minimal, Gradient). Say "show themes" or "use [theme name]" to apply a theme.`;
+          }
+
           return {
             content: [
               {
                 type: "text",
-                text: `✅ Slide ${args.slide_data.slidenum} created successfully!\n\nTitle: "${args.slide_data.title}"\nSubtitle: ${args.slide_data.subtitle}\n\n🔑 IMPORTANT - Save this Presentation ID:\n${presentation.presentationId}\n\nFor any additional slides in THIS conversation, you MUST include:\n"presentation_id": "${presentation.presentationId}"\nin the tool parameters.`,
+                text: `✅ Slide ${args.slide_data.slidenum} created successfully!\n\nTitle: "${args.slide_data.title}"\nSubtitle: ${args.slide_data.subtitle}\n\n🔑 IMPORTANT - Save this Presentation ID:\n${presentation.presentationId}\n\nFor any additional slides in THIS conversation, you MUST include:\n"presentation_id": "${presentation.presentationId}"\nin the tool parameters.${themeMessage}`,
               },
             ],
             structuredContent: {
@@ -559,6 +993,7 @@ function createSlidesServer(): Server {
                 image_url: result.data.image_url,
                 presentation_view_url: result.data.presentation_view_url,
               },
+              ...(isFirstSlide ? { theme_options: themeOptions } : {}),
             },
             _meta: widgetMeta(widget),
           };
@@ -567,7 +1002,9 @@ function createSlidesServer(): Server {
         // Handle slide-carousel tool
         if (toolName === "slide-carousel") {
           const widget = widgetsById.get("slide-carousel")!;
-          const args = slideCarouselInputParser.parse(request.params.arguments ?? {});
+          const args = slideCarouselInputParser.parse(
+            request.params.arguments ?? {}
+          );
 
           console.log("\n--- Presentation ID from request ---");
           console.log(
@@ -581,11 +1018,22 @@ function createSlidesServer(): Server {
           console.log(`\n--- Creating ${args.slides_data.length} slides ---`);
           console.log(JSON.stringify(args.slides_data, null, 2));
 
-          console.log(`\n🚀 Starting sequential API calls for ${args.slides_data.length} slides...`);
+          console.log(
+            `\n🚀 Starting sequential API calls for ${args.slides_data.length} slides...`
+          );
           const results: GenerateResponse[] = [];
           for (const slideData of args.slides_data) {
             const result = await createSlide(slideData, presentation);
             results.push(result);
+
+            // Extract and store the actual deck ID from the first API response
+            if (!presentation.deckId && result.data.presentation_view_url) {
+              const extractedDeckId = extractDeckIdFromUrl(result.data.presentation_view_url);
+              if (extractedDeckId) {
+                presentation.deckId = extractedDeckId;
+                console.log(`   📍 Extracted deck ID: ${extractedDeckId}`);
+              }
+            }
           }
           console.log(`\n✅ All ${results.length} API calls completed`);
 
@@ -598,20 +1046,41 @@ function createSlidesServer(): Server {
           }));
 
           console.log(`\n📦 Returning ${slides.length} slides in response`);
-          slides.forEach(slide => {
+          slides.forEach((slide) => {
             console.log(`   - Slide ${slide.slidenum}: ${slide.title}`);
           });
+
+          // Check if these are the first slides and theme hasn't been offered yet
+          const isFirstBatch =
+            !presentation.themeOffered && !presentation.themeId;
+          let themeMessage = "";
+          let themeOptions = {};
+
+          if (isFirstBatch) {
+            presentation.themeOffered = true;
+            themeOptions = generateThemeOptions();
+            themeMessage = `\n\n🎨 **Theme Options Available!**\nWould you like to customize your presentation's look? We have 22 themes across 3 categories (Urban, Minimal, Gradient). Say "show themes" or "use [theme name]" to apply a theme.`;
+          }
 
           return {
             content: [
               {
                 type: "text",
-                text: `✅ Created ${slides.length} slides successfully!\n\n${slides.map((s) => `Slide ${s.slidenum}: "${s.title}"`).join("\n")}\n\n🔑 IMPORTANT - Save this Presentation ID:\n${presentation.presentationId}\n\nFor any additional slides in THIS conversation, you MUST include:\n"presentation_id": "${presentation.presentationId}"\nin the tool parameters.`,
+                text: `✅ Created ${
+                  slides.length
+                } slides successfully!\n\n${slides
+                  .map((s) => `Slide ${s.slidenum}: "${s.title}"`)
+                  .join("\n")}\n\n🔑 IMPORTANT - Save this Presentation ID:\n${
+                  presentation.presentationId
+                }\n\nFor any additional slides in THIS conversation, you MUST include:\n"presentation_id": "${
+                  presentation.presentationId
+                }"\nin the tool parameters.${themeMessage}`,
               },
             ],
             structuredContent: {
               presentation_id: presentation.presentationId,
               slides,
+              ...(isFirstBatch ? { theme_options: themeOptions } : {}),
             },
             _meta: widgetMeta(widget),
           };
@@ -641,7 +1110,9 @@ function createSlidesServer(): Server {
           const imageList = topImages
             .map(
               (img: any, index: number) =>
-                `${index + 1}. ${img.image_id}\n   Caption: "${img.caption}"\n   Preview: ${img.url}`
+                `${index + 1}. ${img.image_id}\n   Caption: "${
+                  img.caption
+                }"\n   Preview: ${img.url}`
             )
             .join("\n\n");
 
@@ -655,6 +1126,110 @@ function createSlidesServer(): Server {
           };
         }
 
+        // Handle apply-theme tool
+        if (toolName === "apply-theme") {
+          const args = applyThemeInputParser.parse(
+            request.params.arguments ?? {}
+          );
+
+          console.log("\n--- Applying theme ---");
+          console.log("Presentation ID:", args.presentation_id);
+          console.log("Theme ID:", args.theme_id);
+
+          // Get presentation context
+          const presentation = presentations.get(args.presentation_id);
+          if (!presentation) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `❌ Presentation not found: ${args.presentation_id}. Make sure you're using the correct presentation_id from slide creation.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+
+          // Use the stored deck ID from the API response
+          if (!presentation.deckId) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `❌ No deck ID available for presentation: ${args.presentation_id}. Please create at least one slide first.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+
+          const result = await applyTheme(presentation.deckId, args.theme_id, presentation);
+          const themeMeta = THEME_METADATA[args.theme_id];
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: `✅ Theme "${themeMeta.name}" (${
+                  themeMeta.description
+                }) has been applied to your presentation!\n\n${
+                  result.slides?.length || 0
+                } slide(s) have been re-rendered with the new theme.\n\nView your presentation: ${
+                  result.presentation_view_url
+                }`,
+              },
+            ],
+            structuredContent: {
+              success: true,
+              theme: {
+                id: args.theme_id,
+                name: themeMeta.name,
+                category: themeMeta.category,
+                description: themeMeta.description,
+              },
+              slides: result.slides,
+              presentation_view_url: result.presentation_view_url,
+            },
+          };
+        }
+
+        // Handle show-theme-picker tool
+        if (toolName === "show-theme-picker") {
+          const widget = widgetsById.get("theme-picker")!;
+          const args = showThemePickerInputParser.parse(
+            request.params.arguments ?? {}
+          );
+
+          console.log("\n--- Showing theme picker ---");
+          console.log("Presentation ID:", args.presentation_id);
+          console.log(
+            "Recommended Theme:",
+            args.recommended_theme_id || "none"
+          );
+
+          // Get presentation context to access the actual deck ID
+          const presentation = presentations.get(args.presentation_id);
+          const deckId = presentation?.deckId || null;
+
+          const themeOptions = generateThemeOptions(
+            args.recommended_theme_id as ThemeId | undefined
+          );
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: `🎨 Choose a theme for your presentation!\n\nWe have ${themeOptions.total_themes} themes across 3 categories:\n• Urban (16 themes): City-inspired, bold, modern\n• Minimal (4 themes): Clean, simple, content-focused\n• Gradient (6 themes): Vibrant, creative, eye-catching\n\n${themeOptions.instructions}`,
+              },
+            ],
+            structuredContent: {
+              deck_id: deckId,
+              ...themeOptions,
+            },
+            _meta: widgetMeta(widget),
+          };
+        }
+
         throw new Error(`Unknown tool: ${toolName}`);
       } catch (error) {
         console.error(`Error in tool ${toolName}:`, error);
@@ -662,7 +1237,9 @@ function createSlidesServer(): Server {
           content: [
             {
               type: "text",
-              text: `❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+              text: `❌ Error: ${
+                error instanceof Error ? error.message : "Unknown error"
+              }`,
             },
           ],
           isError: true,
