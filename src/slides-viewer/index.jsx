@@ -1,8 +1,11 @@
-import { Download, ExternalLink, Check, Loader2, Palette } from "lucide-react";
+import { Check, ExternalLink, Loader2, Palette } from "lucide-react";
 import React from "react";
 import { createRoot } from "react-dom/client";
+import {
+  generateCSSBackground,
+  getAllThemes,
+} from "../lib/themes/theme-library";
 import { useWidgetProps } from "../use-widget-props";
-import { getAllThemes, generateCSSBackground } from "../lib/themes/theme-library";
 
 // Compact theme preview for inline selector
 function ThemePreview({ theme, isSelected, isApplying, onSelect }) {
@@ -12,9 +15,11 @@ function ThemePreview({ theme, isSelected, isApplying, onSelect }) {
       disabled={isApplying}
       className={`
         relative flex-shrink-0 w-28 rounded-lg overflow-hidden border-2 transition-all duration-200
-        ${isSelected
-          ? "border-primary ring-2 ring-primary/30 scale-105"
-          : "border-gray-200 hover:border-primary/50 hover:scale-102"}
+        ${
+          isSelected
+            ? "border-primary ring-2 ring-primary/30 scale-105"
+            : "border-gray-200 hover:border-primary/50 hover:scale-102"
+        }
         ${isApplying ? "opacity-50 cursor-wait" : "cursor-pointer"}
       `}
       title={theme.name}
@@ -86,7 +91,7 @@ function ThemeSelector({ deckId, currentThemeId, onThemeApplied }) {
 
     try {
       const response = await fetch(
-        "https://slidesgpt-next-git-feat-custom-themes-in-gpt-slidesgpt.vercel.app/api/chat/apply-theme",
+        "https://slidesgpt-next-git-feat-custom-themes-in-gpt-slidesgpt.vercel.app/api/chat/apply-theme-for-gpt",
         {
           method: "POST",
           mode: "cors",
@@ -99,12 +104,12 @@ function ThemeSelector({ deckId, currentThemeId, onThemeApplied }) {
         throw new Error("Failed to apply theme");
       }
 
-      const result = await response.json();
+      await response.json(); // Confirm success
       setSelectedTheme(themeId);
 
       // Notify parent about theme change
-      if (onThemeApplied && result.slides?.[0]?.image_url) {
-        onThemeApplied(result.slides[0].image_url, themeId);
+      if (onThemeApplied) {
+        onThemeApplied(themeId);
       }
     } catch (err) {
       setError("Failed to apply theme. Please try again.");
@@ -138,17 +143,23 @@ function ThemeSelector({ deckId, currentThemeId, onThemeApplied }) {
       </button>
 
       {/* Error message */}
-      {error && (
-        <p className="text-xs text-red-500 mb-2">{error}</p>
-      )}
+      {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
 
       {/* Theme grid - always show a preview row, expandable for full grid */}
-      <div className={`overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 ${isExpanded ? "" : "max-h-24"}`}>
-        <div className={`
-          ${isExpanded
-            ? "grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2"
-            : "flex gap-2 pb-2"}
-        `}>
+      <div
+        className={`overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 ${
+          isExpanded ? "" : "max-h-24"
+        }`}
+      >
+        <div
+          className={`
+          ${
+            isExpanded
+              ? "grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2"
+              : "flex gap-2 pb-2"
+          }
+        `}
+        >
           {allThemes.map((theme) => (
             <ThemePreview
               key={theme.id}
@@ -165,9 +176,8 @@ function ThemeSelector({ deckId, currentThemeId, onThemeApplied }) {
 }
 
 function App() {
-  const [imageLoaded, setImageLoaded] = React.useState(false);
-  const [imageError, setImageError] = React.useState(false);
-  const [currentImageUrl, setCurrentImageUrl] = React.useState(null);
+  const [slideLoaded, setSlideLoaded] = React.useState(false);
+  const [currentSlideUrl, setCurrentSlideUrl] = React.useState(null);
   const [currentThemeId, setCurrentThemeId] = React.useState(null);
 
   const props = useWidgetProps({
@@ -175,7 +185,7 @@ function App() {
       title: "Sample Slide",
       subtitle: "Subtitle here",
       slidenum: 1,
-      image_url: "",
+      slide_url: "",
       presentation_view_url: "",
     },
     deck_id: null,
@@ -184,21 +194,24 @@ function App() {
 
   const { slide, deck_id, theme_id } = props;
 
-  // Initialize current image URL from props
+  // Initialize current slide URL from props
   React.useEffect(() => {
-    if (slide?.image_url && !currentImageUrl) {
-      setCurrentImageUrl(slide.image_url);
+    if (slide?.slide_url && !currentSlideUrl) {
+      setCurrentSlideUrl(slide.slide_url);
     }
     if (theme_id && !currentThemeId) {
       setCurrentThemeId(theme_id);
     }
-  }, [slide?.image_url, theme_id]);
+  }, [slide?.slide_url, theme_id, currentSlideUrl, currentThemeId]);
 
-  const handleThemeApplied = (newImageUrl, themeId) => {
-    // Update the displayed image when theme changes
-    setCurrentImageUrl(newImageUrl);
+  const handleThemeApplied = (themeId) => {
+    // When theme changes, force iframe reload by appending timestamp
     setCurrentThemeId(themeId);
-    setImageLoaded(false); // Trigger reload animation
+    setSlideLoaded(false);
+
+    const url = new URL(currentSlideUrl || slide.slide_url);
+    url.searchParams.set("t", Date.now().toString());
+    setCurrentSlideUrl(url.toString());
   };
 
   if (!slide) {
@@ -209,44 +222,44 @@ function App() {
     );
   }
 
-  const displayImageUrl = currentImageUrl || slide.image_url;
-  const hasImage = displayImageUrl && displayImageUrl.trim() !== "";
+  const displaySlideUrl = currentSlideUrl || slide.slide_url;
+  const hasSlide = displaySlideUrl && displaySlideUrl.trim() !== "";
 
   return (
     <div className="antialiased w-full bg-white text-black p-6">
       <div className="max-w-4xl mx-auto">
-        {/* Slide Image */}
-        <div className="relative w-full rounded-xl overflow-hidden ring-1 ring-black/10 shadow-lg">
-          {/* Loading Skeleton - Show when no image or image is loading */}
-          {(!imageLoaded || !hasImage) && !imageError && (
-            <div className="w-full min-h-[400px] bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100 animate-pulse flex items-center justify-center">
+        {/* Live Slide Embed */}
+        <div className="relative w-full rounded-xl overflow-hidden ring-1 ring-black/10 shadow-lg bg-white">
+          {/* Loading State */}
+          {!slideLoaded && hasSlide && (
+            <div className="absolute inset-0 z-10 bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100 flex items-center justify-center">
               <div className="text-center space-y-3">
                 <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-                <p className="text-sm text-gray-400">Generating slide...</p>
+                <p className="text-sm text-gray-400">Loading slide...</p>
               </div>
             </div>
           )}
 
-          {/* Actual Image - Only render when we have URL */}
-          {hasImage && (
-            <img
-              src={displayImageUrl}
-              alt={slide.title}
-              className={`w-full h-auto object-contain bg-white transition-opacity duration-300 ${
-                imageLoaded ? "opacity-100" : "opacity-0 absolute"
-              }`}
-              onLoad={() => setImageLoaded(true)}
-              onError={() => {
-                setImageError(true);
-                setImageLoaded(false);
+          {/* Live Slide iframe */}
+          {hasSlide && (
+            <iframe
+              src={displaySlideUrl}
+              className="w-full aspect-video border-0"
+              style={{
+                minHeight: "240px",
+                opacity: slideLoaded ? 1 : 0,
+                transition: "opacity 0.3s",
               }}
+              onLoad={() => setSlideLoaded(true)}
+              title={slide.title}
+              sandbox="allow-same-origin allow-scripts"
             />
           )}
 
-          {/* Error State - Only show if image actually failed to load */}
-          {imageError && hasImage && (
-            <div className="w-full min-h-[300px] flex items-center justify-center bg-muted text-muted-foreground">
-              <p>Slide image failed to load</p>
+          {/* No Slide State */}
+          {!hasSlide && (
+            <div className="w-full min-h-[400px] flex items-center justify-center bg-muted text-muted-foreground">
+              <p>No slide available</p>
             </div>
           )}
         </div>
@@ -271,14 +284,15 @@ function App() {
               View Presentation
             </a>
           )}
-          {displayImageUrl && (
+          {displaySlideUrl && (
             <a
-              href={displayImageUrl}
-              download={`slide-${slide.slidenum}.png`}
+              href={displaySlideUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-lg bg-secondary text-secondary-foreground px-4 py-2 text-sm font-medium hover:bg-secondary/80 transition-colors"
             >
-              <Download className="h-4 w-4" aria-hidden="true" />
-              Download Slide
+              <ExternalLink className="h-4 w-4" aria-hidden="true" />
+              Open in New Tab
             </a>
           )}
         </div>

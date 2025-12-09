@@ -55,7 +55,7 @@ const SlideSchema = z.object({
 
 const GenerateResponseSchema = z.object({
   data: z.object({
-    image_url: z.string().describe("URL of the generated slide image"),
+    slide_url: z.string().describe("URL of the live slide (on-demand)"),
     presentation_view_url: z.string().describe("URL to view the presentation"),
   }),
 });
@@ -641,7 +641,7 @@ async function createSlide(
   console.log(`   Conversation ID: ${presentationContext.conversationId}`);
 
   const response = await fetch(
-    "https://slidesgpt-next-git-feat-custom-themes-in-gpt-slidesgpt.vercel.app/chat/generate",
+    "https://slidesgpt-next-git-feat-custom-themes-in-gpt-slidesgpt.vercel.app/chat/generate-for-gpt",
     {
       method: "POST",
       headers: {
@@ -665,7 +665,7 @@ async function createSlide(
   const parsed = GenerateResponseSchema.parse(responseData);
 
   console.log(`   ✅ Slide ${slideData.slidenum} created successfully`);
-  console.log(`   Image URL: ${parsed.data.image_url}`);
+  console.log(`   Slide URL: ${parsed.data.slide_url}`);
   console.log(`   Presentation URL: ${parsed.data.presentation_view_url}`);
 
   // Increment slide count
@@ -700,7 +700,6 @@ async function searchImages(caption: string): Promise<any[]> {
 type ApplyThemeResponse = {
   success: boolean;
   theme: { id: string; name: string };
-  slides: Array<{ slideNum: number; image_url: string }>;
   presentation_view_url: string;
   message: string;
 };
@@ -715,7 +714,7 @@ async function applyTheme(
   console.log(`\n🎨 Applying theme "${themeId}" to deck ${deckId}`);
 
   const response = await fetch(
-    "https://slidesgpt-next-git-feat-custom-themes-in-gpt-slidesgpt.vercel.app/api/chat/apply-theme",
+    "https://slidesgpt-next-git-feat-custom-themes-in-gpt-slidesgpt.vercel.app/api/chat/apply-theme-for-gpt",
     {
       method: "POST",
       headers: {
@@ -741,7 +740,7 @@ async function applyTheme(
   presentationContext.themeId = themeId;
 
   console.log(`   ✅ Theme "${themeId}" applied successfully`);
-  console.log(`   Re-rendered ${responseData.slides?.length || 0} slides`);
+  console.log(`   ${responseData.message}`);
 
   return responseData;
 }
@@ -956,7 +955,9 @@ function createSlidesServer(): Server {
 
           // Extract and store the actual deck ID from the API response
           if (!presentation.deckId && result.data.presentation_view_url) {
-            const extractedDeckId = extractDeckIdFromUrl(result.data.presentation_view_url);
+            const extractedDeckId = extractDeckIdFromUrl(
+              result.data.presentation_view_url
+            );
             if (extractedDeckId) {
               presentation.deckId = extractedDeckId;
               console.log(`   📍 Extracted deck ID: ${extractedDeckId}`);
@@ -992,7 +993,7 @@ function createSlidesServer(): Server {
                 title: args.slide_data.title,
                 subtitle: args.slide_data.subtitle,
                 slidenum: args.slide_data.slidenum,
-                image_url: result.data.image_url,
+                slide_url: result.data.slide_url,
                 presentation_view_url: result.data.presentation_view_url,
               },
               ...(isFirstSlide ? { theme_options: themeOptions } : {}),
@@ -1030,7 +1031,9 @@ function createSlidesServer(): Server {
 
             // Extract and store the actual deck ID from the first API response
             if (!presentation.deckId && result.data.presentation_view_url) {
-              const extractedDeckId = extractDeckIdFromUrl(result.data.presentation_view_url);
+              const extractedDeckId = extractDeckIdFromUrl(
+                result.data.presentation_view_url
+              );
               if (extractedDeckId) {
                 presentation.deckId = extractedDeckId;
                 console.log(`   📍 Extracted deck ID: ${extractedDeckId}`);
@@ -1043,7 +1046,7 @@ function createSlidesServer(): Server {
             title: slideData.title,
             subtitle: slideData.subtitle,
             slidenum: slideData.slidenum,
-            image_url: results[index].data.image_url,
+            slide_url: results[index].data.slide_url,
             presentation_view_url: results[index].data.presentation_view_url,
           }));
 
@@ -1165,20 +1168,18 @@ function createSlidesServer(): Server {
             };
           }
 
-          const result = await applyTheme(presentation.deckId, args.theme_id, presentation);
+          const result = await applyTheme(
+            presentation.deckId,
+            args.theme_id,
+            presentation
+          );
           const themeMeta = THEME_METADATA[args.theme_id];
 
           return {
             content: [
               {
                 type: "text",
-                text: `✅ Theme "${themeMeta.name}" (${
-                  themeMeta.description
-                }) has been applied to your presentation!\n\n${
-                  result.slides?.length || 0
-                } slide(s) have been re-rendered with the new theme.\n\nView your presentation: ${
-                  result.presentation_view_url
-                }`,
+                text: `✅ Theme "${themeMeta.name}" (${themeMeta.description}) has been applied to your presentation!\n\n${result.message}\n\nView your presentation: ${result.presentation_view_url}`,
               },
             ],
             structuredContent: {
@@ -1189,7 +1190,6 @@ function createSlidesServer(): Server {
                 category: themeMeta.category,
                 description: themeMeta.description,
               },
-              slides: result.slides,
               presentation_view_url: result.presentation_view_url,
             },
           };
