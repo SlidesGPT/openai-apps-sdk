@@ -715,7 +715,7 @@ async function applyTheme(
   console.log(`\n🎨 Applying theme "${themeId}" to deck ${deckId}`);
 
   const response = await fetch(
-    "https://slidesgpt-next-git-feat-custom-themes-in-gpt-slidesgpt.vercel.app/chat/apply-theme",
+    "https://slidesgpt-next-git-feat-custom-themes-in-gpt-slidesgpt.vercel.app/api/chat/apply-theme",
     {
       method: "POST",
       headers: {
@@ -986,6 +986,8 @@ function createSlidesServer(): Server {
             ],
             structuredContent: {
               presentation_id: presentation.presentationId,
+              deck_id: presentation.deckId, // For inline theme selector
+              theme_id: presentation.themeId, // Current theme if any
               slide: {
                 title: args.slide_data.title,
                 subtitle: args.slide_data.subtitle,
