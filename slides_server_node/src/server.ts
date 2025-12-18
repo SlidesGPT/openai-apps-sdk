@@ -641,7 +641,7 @@ async function createSlide(
   console.log(`   Conversation ID: ${presentationContext.conversationId}`);
 
   const response = await fetch(
-    "https://slidesgpt-next-git-feat-custom-themes-in-gpt-slidesgpt.vercel.app/chat/generate-for-gpt",
+    "https://local.ajinkyabodke.com/chat/generate-for-gpt",
     {
       method: "POST",
       headers: {
@@ -676,9 +676,7 @@ async function createSlide(
 
 // API call to search images
 async function searchImages(caption: string): Promise<any[]> {
-  const searchUrl = new URL(
-    "https://slidesgpt-next-git-feat-custom-themes-in-gpt-slidesgpt.vercel.app/chat/search"
-  );
+  const searchUrl = new URL("https://local.ajinkyabodke.com/chat/search");
   searchUrl.searchParams.append("caption", caption);
 
   const response = await fetch(searchUrl.toString(), {
@@ -714,7 +712,7 @@ async function applyTheme(
   console.log(`\n🎨 Applying theme "${themeId}" to deck ${deckId}`);
 
   const response = await fetch(
-    "https://slidesgpt-next-git-feat-custom-themes-in-gpt-slidesgpt.vercel.app/api/chat/apply-theme-for-gpt",
+    "https://local.ajinkyabodke.com/api/chat/apply-theme-for-gpt",
     {
       method: "POST",
       headers: {
@@ -986,7 +984,7 @@ function createSlidesServer(): Server {
               },
             ],
             structuredContent: {
-              presentation_id: presentation.presentationId,
+              presentation_id: presentation.presentationId, // For tool calling
               deck_id: presentation.deckId, // For inline theme selector
               theme_id: presentation.themeId, // Current theme if any
               slide: {
@@ -995,6 +993,10 @@ function createSlidesServer(): Server {
                 slidenum: args.slide_data.slidenum,
                 slide_url: result.data.slide_url,
                 presentation_view_url: result.data.presentation_view_url,
+                image_id: args.slide_data.image_id,
+                body: args.slide_data.body,
+                talktrack: args.slide_data.talktrack,
+                sources: args.slide_data.sources,
               },
               ...(isFirstSlide ? { theme_options: themeOptions } : {}),
             },
@@ -1083,7 +1085,9 @@ function createSlidesServer(): Server {
               },
             ],
             structuredContent: {
-              presentation_id: presentation.presentationId,
+              presentation_id: presentation.presentationId, // For tool calling
+              deck_id: presentation.deckId, // For theme selector
+              theme_id: presentation.themeId, // Current theme if any
               slides,
               ...(isFirstBatch ? { theme_options: themeOptions } : {}),
             },
