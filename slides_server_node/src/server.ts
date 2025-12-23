@@ -781,8 +781,8 @@ const tools: Tool[] = [
     _meta: widgetMeta(widgetsById.get("slide-viewer")!),
     annotations: {
       destructiveHint: false,
-      openWorldHint: false,
-      readOnlyHint: true,
+      openWorldHint: true,
+      readOnlyHint: false,
     },
   },
   {
@@ -794,8 +794,8 @@ const tools: Tool[] = [
     _meta: widgetMeta(widgetsById.get("slide-carousel")!),
     annotations: {
       destructiveHint: false,
-      openWorldHint: false,
-      readOnlyHint: true,
+      openWorldHint: true,
+      readOnlyHint: false,
     },
   },
   {
@@ -806,7 +806,7 @@ const tools: Tool[] = [
     title: "Search Images",
     annotations: {
       destructiveHint: false,
-      openWorldHint: false,
+      openWorldHint: true,
       readOnlyHint: true,
     },
   },
@@ -818,7 +818,7 @@ const tools: Tool[] = [
     title: "Apply Theme",
     annotations: {
       destructiveHint: false,
-      openWorldHint: false,
+      openWorldHint: true,
       readOnlyHint: false,
     },
   },
@@ -856,8 +856,18 @@ const resourceTemplates: ResourceTemplate[] = widgets.map((widget) => ({
 function createSlidesServer(): Server {
   const server = new Server(
     {
-      name: "slides-node",
-      version: "0.1.0",
+      name: "SlidesGPT",
+      version: "0.1.1",
+      description:
+        "Create professional presentation slides with AI-powered design and theming. Generate slides with rich content, apply beautiful themes, and download high-quality images.",
+      privacyPolicyUrl: "https://slidesgpt.com/privacy",
+      supportEmail: "support@slidesgpt.com",
+      homepage: "https://slidesgpt.com",
+      iconUrl: "https://slidesgpt.com/favicon.svg",
+      author: {
+        name: "SlidesGPT",
+        url: "https://slidesgpt.com",
+      },
     },
     {
       capabilities: {
@@ -956,7 +966,9 @@ function createSlidesServer(): Server {
 
           // Extract and store the actual deck ID from the API response
           if (!presentation.deckId && result.data.presentation_view_url) {
-            const extractedDeckId = extractDeckIdFromUrl(result.data.presentation_view_url);
+            const extractedDeckId = extractDeckIdFromUrl(
+              result.data.presentation_view_url
+            );
             if (extractedDeckId) {
               presentation.deckId = extractedDeckId;
               console.log(`   📍 Extracted deck ID: ${extractedDeckId}`);
@@ -1030,7 +1042,9 @@ function createSlidesServer(): Server {
 
             // Extract and store the actual deck ID from the first API response
             if (!presentation.deckId && result.data.presentation_view_url) {
-              const extractedDeckId = extractDeckIdFromUrl(result.data.presentation_view_url);
+              const extractedDeckId = extractDeckIdFromUrl(
+                result.data.presentation_view_url
+              );
               if (extractedDeckId) {
                 presentation.deckId = extractedDeckId;
                 console.log(`   📍 Extracted deck ID: ${extractedDeckId}`);
@@ -1165,7 +1179,11 @@ function createSlidesServer(): Server {
             };
           }
 
-          const result = await applyTheme(presentation.deckId, args.theme_id, presentation);
+          const result = await applyTheme(
+            presentation.deckId,
+            args.theme_id,
+            presentation
+          );
           const themeMeta = THEME_METADATA[args.theme_id];
 
           return {
