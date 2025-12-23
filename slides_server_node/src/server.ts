@@ -87,7 +87,7 @@ type PresentationContext = {
   lastUsed: Date;
   themeId: string | null; // Current theme applied to the presentation
   themeOffered: boolean; // Whether theme options have been shown
-  deckId: string | null; // Actual deck ID from the API (for apply-theme)
+  deckId: string | null; // Actual deck ID from the API (for apply_theme)
 };
 
 const presentations = new Map<string, PresentationContext>();
@@ -204,18 +204,18 @@ function widgetMeta(widget: SlideWidget) {
 
 const widgets: SlideWidget[] = [
   {
-    id: "slide-viewer",
+    id: "create_slide",
     title: "Create Slide",
-    templateUri: "ui://widget/slide-viewer.html",
+    templateUri: "ui://widget/create_slide.html",
     invoking: "Creating slide...",
     invoked: "Slide created",
     html: readWidgetHtml("slides-viewer"),
     responseText: "Slide created successfully!",
   },
   {
-    id: "slide-carousel",
+    id: "create_slide_carousel",
     title: "Create Slides Carousel",
-    templateUri: "ui://widget/slide-carousel.html",
+    templateUri: "ui://widget/create_slide_carousel.html",
     invoking: "Creating slides...",
     invoked: "Slides created",
     html: readWidgetHtml("slides-carousel"),
@@ -640,20 +640,17 @@ async function createSlide(
   console.log(`   User ID: ${presentationContext.userId}`);
   console.log(`   Conversation ID: ${presentationContext.conversationId}`);
 
-  const response = await fetch(
-    "https://slidesgpt-next-git-feat-custom-themes-in-gpt-slidesgpt.vercel.app/chat/generate",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...headers,
-      },
-      body: JSON.stringify({
-        v: "2",
-        slidecode: slideData,
-      }),
-    }
-  );
+  const response = await fetch("https://local.ajinkyabodke.com/chat/generate", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...headers,
+    },
+    body: JSON.stringify({
+      v: "2",
+      slidecode: slideData,
+    }),
+  });
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -676,9 +673,7 @@ async function createSlide(
 
 // API call to search images
 async function searchImages(caption: string): Promise<any[]> {
-  const searchUrl = new URL(
-    "https://slidesgpt-next-git-feat-custom-themes-in-gpt-slidesgpt.vercel.app/chat/search"
-  );
+  const searchUrl = new URL("https://local.ajinkyabodke.com/chat/search");
   searchUrl.searchParams.append("caption", caption);
 
   const response = await fetch(searchUrl.toString(), {
@@ -715,7 +710,7 @@ async function applyTheme(
   console.log(`\n🎨 Applying theme "${themeId}" to deck ${deckId}`);
 
   const response = await fetch(
-    "https://slidesgpt-next-git-feat-custom-themes-in-gpt-slidesgpt.vercel.app/api/chat/apply-theme",
+    "https://local.ajinkyabodke.com/api/chat/apply-theme",
     {
       method: "POST",
       headers: {
@@ -767,18 +762,18 @@ function generateThemeOptions(recommendedThemeId?: ThemeId) {
     all_themes: allThemes,
     total_themes: 22,
     recommended_theme_id: recommendedThemeId,
-    instructions: `To apply a theme, say "Use [theme name]" (e.g., "Use Tokyo Dark") or use the apply-theme tool with the theme_id.`,
+    instructions: `To apply a theme, say "Use [theme name]" (e.g., "Use Tokyo Dark") or use the apply_theme tool with the theme_id.`,
   };
 }
 
 const tools: Tool[] = [
   {
-    name: "slide-viewer",
+    name: "create_slide",
     description:
       "Creates a professional presentation slide from structured data. Generates a slide with title, subtitle, bullet points, and talk track. The slide will be displayed in an interactive viewer. IMPORTANT: When creating multiple slides in the same conversation, always pass the presentation_id returned from the previous slide creation to maintain presentation continuity.",
     inputSchema: slideViewerInputSchema,
     title: "Create Slide",
-    _meta: widgetMeta(widgetsById.get("slide-viewer")!),
+    _meta: widgetMeta(widgetsById.get("create_slide")!),
     annotations: {
       destructiveHint: false,
       openWorldHint: true,
@@ -786,12 +781,12 @@ const tools: Tool[] = [
     },
   },
   {
-    name: "slide-carousel",
+    name: "create_slide_carousel",
     description:
       "Creates multiple presentation slides at once and displays them in a scrollable carousel. Each slide includes title, subtitle, bullet points, and talk track. IMPORTANT: When adding more slides to an existing presentation, always pass the presentation_id from the previous tool call to maintain presentation continuity.",
     inputSchema: slideCarouselInputSchema,
     title: "Create Slides Carousel",
-    _meta: widgetMeta(widgetsById.get("slide-carousel")!),
+    _meta: widgetMeta(widgetsById.get("create_slide_carousel")!),
     annotations: {
       destructiveHint: false,
       openWorldHint: true,
@@ -799,7 +794,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: "search-images",
+    name: "search_images",
     description:
       "Search for professional images to use in slides. Returns image IDs that can be used in the slide_data's image_id field.",
     inputSchema: searchInputSchema,
@@ -811,7 +806,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: "apply-theme",
+    name: "apply_theme",
     description:
       "Apply a visual theme to the presentation. This will re-render all slides with the new theme. Available themes include: Urban (Copenhagen, Tokyo, Paris, Berlin, New York, LA, Zürich, Shanghai - each with light/dark), Minimal (Minimal Pure, Zen Gray - light/dark), Gradient (Aurora Glow 1-4, Cosmic Pulse light/dark). Call this after creating slides when the user wants to change the presentation style.",
     inputSchema: applyThemeInputSchema,
@@ -823,7 +818,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: "show-theme-picker",
+    name: "show_theme_picker",
     description:
       "Display an interactive theme picker widget to the user. Use this to let the user visually browse and select from 22 available themes across 3 categories (Urban, Minimal, Gradient). The widget shows theme previews with colors and fonts.",
     inputSchema: showThemePickerInputSchema,
@@ -943,9 +938,9 @@ function createSlidesServer(): Server {
       console.log(JSON.stringify(request.params.arguments, null, 2));
 
       try {
-        // Handle slide-viewer tool
-        if (toolName === "slide-viewer") {
-          const widget = widgetsById.get("slide-viewer")!;
+        // Handle create_slide tool
+        if (toolName === "create_slide") {
+          const widget = widgetsById.get("create_slide")!;
           const args = slideViewerInputParser.parse(
             request.params.arguments ?? {}
           );
@@ -1013,9 +1008,9 @@ function createSlidesServer(): Server {
           };
         }
 
-        // Handle slide-carousel tool
-        if (toolName === "slide-carousel") {
-          const widget = widgetsById.get("slide-carousel")!;
+        // Handle create_slide_carousel tool
+        if (toolName === "create_slide_carousel") {
+          const widget = widgetsById.get("create_slide_carousel")!;
           const args = slideCarouselInputParser.parse(
             request.params.arguments ?? {}
           );
@@ -1102,8 +1097,8 @@ function createSlidesServer(): Server {
           };
         }
 
-        // Handle search-images tool
-        if (toolName === "search-images") {
+        // Handle search_images tool
+        if (toolName === "search_images") {
           const args = searchInputParser.parse(request.params.arguments ?? {});
 
           console.log("\n--- Searching images ---");
@@ -1142,8 +1137,8 @@ function createSlidesServer(): Server {
           };
         }
 
-        // Handle apply-theme tool
-        if (toolName === "apply-theme") {
+        // Handle apply_theme tool
+        if (toolName === "apply_theme") {
           const args = applyThemeInputParser.parse(
             request.params.arguments ?? {}
           );
@@ -1213,8 +1208,8 @@ function createSlidesServer(): Server {
           };
         }
 
-        // Handle show-theme-picker tool
-        if (toolName === "show-theme-picker") {
+        // Handle show_theme_picker tool
+        if (toolName === "show_theme_picker") {
           const widget = widgetsById.get("theme-picker")!;
           const args = showThemePickerInputParser.parse(
             request.params.arguments ?? {}

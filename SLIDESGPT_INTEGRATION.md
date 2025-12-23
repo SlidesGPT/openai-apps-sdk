@@ -55,19 +55,23 @@ openai-apps-sdk-examples/
 ### Installation
 
 1. **Install dependencies:**
+
    ```bash
    pnpm install
    ```
 
 2. **Build UI components:**
+
    ```bash
    pnpm run build
    ```
 
 3. **Start asset server:**
+
    ```bash
    pnpm run serve
    ```
+
    This serves the built components on `http://localhost:4444`
 
 4. **Start MCP server (in a new terminal):**
@@ -81,23 +85,25 @@ openai-apps-sdk-examples/
 
 ### Available Tools
 
-#### 1. `slide-viewer` - Create Single Slide
+#### 1. `create_slide` - Create Single Slide
 
 Creates one professional slide and displays it in an interactive viewer.
 
 **Example ChatGPT prompt:**
+
 ```
 Create a slide about "The Benefits of AI in Healthcare" with 3 bullet points
 ```
 
 **Tool Input Schema:**
+
 ```typescript
 {
   slide_data: {
     title: string;
     subtitle: string;
     slidenum: number;
-    image_id: string;          // From search-images tool or ""
+    image_id: string;          // From search_images tool or ""
     body: Array<{
       point: string;
       description: string;
@@ -113,35 +119,39 @@ Create a slide about "The Benefits of AI in Healthcare" with 3 bullet points
 }
 ```
 
-#### 2. `slide-carousel` - Create Multiple Slides
+#### 2. `create_slide_carousel` - Create Multiple Slides
 
 Creates multiple slides at once and displays them in a carousel.
 
 **Example ChatGPT prompt:**
+
 ```
 Create 5 slides about machine learning fundamentals
 ```
 
 **Tool Input Schema:**
+
 ```typescript
 {
-  slides_data: Array<SlideData>  // Array of slide_data objects
+  slides_data: Array<SlideData>; // Array of slide_data objects
 }
 ```
 
-#### 3. `search-images` - Find Images
+#### 3. `search_images` - Find Images
 
 Search for professional images to use in slides.
 
 **Example ChatGPT prompt:**
+
 ```
 Search for images about "artificial intelligence"
 ```
 
 **Tool Input Schema:**
+
 ```typescript
 {
-  caption: string;  // Search query
+  caption: string; // Search query
 }
 ```
 
@@ -150,11 +160,13 @@ Search for images about "artificial intelligence"
 ### Building Components
 
 Build all components including slides widgets:
+
 ```bash
 pnpm run build
 ```
 
 Build specific components:
+
 ```bash
 # Edit build-all.mts and modify the targets array
 const targets = ["slides-viewer", "slides-carousel"];
@@ -163,6 +175,7 @@ const targets = ["slides-viewer", "slides-carousel"];
 ### Development Server
 
 Run Vite dev server for rapid UI development:
+
 ```bash
 pnpm run dev
 ```
@@ -170,6 +183,7 @@ pnpm run dev
 ### Server Development
 
 Run MCP server with auto-reload:
+
 ```bash
 cd slides_server_node
 pnpm run dev
@@ -192,6 +206,7 @@ pnpm run dev
 ### Production Deployment
 
 1. **Build components:**
+
    ```bash
    BASE_URL=https://your-cdn.com pnpm run build
    ```
@@ -199,6 +214,7 @@ pnpm run dev
 2. **Deploy assets** to CDN or static hosting
 
 3. **Deploy MCP server** to your hosting platform:
+
    ```bash
    # Set environment variables
    export PORT=8001
@@ -220,6 +236,7 @@ The MCP server integrates with SlidesGPT's API:
 **Endpoint:** `POST https://staging.slidesgpt.com/chat/generate`
 
 **Request:**
+
 ```json
 {
   "v": "2",
@@ -236,6 +253,7 @@ The MCP server integrates with SlidesGPT's API:
 ```
 
 **Response:**
+
 ```json
 {
   "data": {
@@ -250,6 +268,7 @@ The MCP server integrates with SlidesGPT's API:
 **Endpoint:** `GET https://staging.slidesgpt.com/chat/search?caption={query}`
 
 **Response:**
+
 ```json
 [
   {
@@ -270,7 +289,7 @@ The MCP server integrates with SlidesGPT's API:
 2. **ChatGPT** → MCP Server (tool call with slide data)
 3. **MCP Server** → SlidesGPT API (generate slide)
 4. **SlidesGPT API** → MCP Server (slide image URL)
-5. **MCP Server** → ChatGPT (widget response with _meta)
+5. **MCP Server** → ChatGPT (widget response with \_meta)
 6. **ChatGPT** → Widget HTML (loads from asset server)
 7. **Widget** receives `toolOutput` via `useWidgetProps()`
 8. **Widget** displays slide image and metadata
@@ -283,9 +302,9 @@ Colors are defined in [src/index.css](src/index.css) using CSS variables:
 
 ```css
 :root {
-  --primary: 263 100% 50%;        /* Purple */
-  --accent: 101 93% 78%;          /* Green */
-  --background: 0 0% 100%;        /* White */
+  --primary: 263 100% 50%; /* Purple */
+  --accent: 101 93% 78%; /* Green */
+  --background: 0 0% 100%; /* White */
   /* ... more colors */
 }
 ```
@@ -295,11 +314,13 @@ To customize, edit these values to match your brand.
 ### Slide Layout
 
 Modify the React components:
+
 - **Single slide**: [src/slides-viewer/index.jsx](src/slides-viewer/index.jsx)
 - **Carousel**: [src/slides-carousel/index.jsx](src/slides-carousel/index.jsx)
 - **Card**: [src/slides-carousel/SlideCard.jsx](src/slides-carousel/SlideCard.jsx)
 
 After editing, rebuild:
+
 ```bash
 pnpm run build
 ```
@@ -307,6 +328,7 @@ pnpm run build
 ### Tool Behavior
 
 Edit [slides_server_node/src/server.ts](slides_server_node/src/server.ts) to:
+
 - Change tool descriptions
 - Modify input schemas
 - Adjust API calls
@@ -317,6 +339,7 @@ Edit [slides_server_node/src/server.ts](slides_server_node/src/server.ts) to:
 ### Assets not loading
 
 Ensure the asset server is running:
+
 ```bash
 pnpm run serve
 ```
@@ -326,12 +349,14 @@ And that `BASE_URL` points to the correct location.
 ### MCP server errors
 
 Check server logs:
+
 ```bash
 cd slides_server_node
 pnpm start
 ```
 
 Common issues:
+
 - **Widget HTML not found**: Run `pnpm run build` first
 - **API errors**: Check staging.slidesgpt.com is accessible
 - **Port in use**: Change `PORT` environment variable
@@ -383,6 +408,7 @@ Same as parent repository.
 ## Support
 
 For issues specific to the SlidesGPT integration, check:
+
 - Server logs in `slides_server_node`
 - Browser console for widget errors
 - Network tab for API call failures

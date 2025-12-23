@@ -1,8 +1,11 @@
-import { Download, ExternalLink, Check, Loader2, Palette } from "lucide-react";
+import { Check, Download, ExternalLink, Loader2, Palette } from "lucide-react";
 import React from "react";
 import { createRoot } from "react-dom/client";
+import {
+  generateCSSBackground,
+  getAllThemes,
+} from "../lib/themes/theme-library";
 import { useWidgetProps } from "../use-widget-props";
-import { getAllThemes, generateCSSBackground } from "../lib/themes/theme-library";
 
 // Compact theme preview for inline selector
 function ThemePreview({ theme, isSelected, isApplying, onSelect }) {
@@ -12,9 +15,11 @@ function ThemePreview({ theme, isSelected, isApplying, onSelect }) {
       disabled={isApplying}
       className={`
         relative flex-shrink-0 w-28 rounded-lg overflow-hidden border-2 transition-all duration-200
-        ${isSelected
-          ? "border-primary ring-2 ring-primary/30 scale-105"
-          : "border-gray-200 hover:border-primary/50 hover:scale-102"}
+        ${
+          isSelected
+            ? "border-primary ring-2 ring-primary/30 scale-105"
+            : "border-gray-200 hover:border-primary/50 hover:scale-102"
+        }
         ${isApplying ? "opacity-50 cursor-wait" : "cursor-pointer"}
       `}
       title={theme.name}
@@ -86,7 +91,7 @@ function ThemeSelector({ deckId, currentThemeId, onThemeApplied }) {
 
     try {
       const response = await fetch(
-        "https://slidesgpt-next-git-feat-custom-themes-in-gpt-slidesgpt.vercel.app/api/chat/apply-theme",
+        "https://local.ajinkyabodke.com/api/chat/apply-theme",
         {
           method: "POST",
           mode: "cors",
@@ -138,17 +143,23 @@ function ThemeSelector({ deckId, currentThemeId, onThemeApplied }) {
       </button>
 
       {/* Error message */}
-      {error && (
-        <p className="text-xs text-red-500 mb-2">{error}</p>
-      )}
+      {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
 
       {/* Theme grid - always show a preview row, expandable for full grid */}
-      <div className={`overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 ${isExpanded ? "" : "max-h-24"}`}>
-        <div className={`
-          ${isExpanded
-            ? "grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2"
-            : "flex gap-2 pb-2"}
-        `}>
+      <div
+        className={`overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 ${
+          isExpanded ? "" : "max-h-24"
+        }`}
+      >
+        <div
+          className={`
+          ${
+            isExpanded
+              ? "grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2"
+              : "flex gap-2 pb-2"
+          }
+        `}
+        >
           {allThemes.map((theme) => (
             <ThemePreview
               key={theme.id}

@@ -10,10 +10,12 @@ An MCP (Model Context Protocol) server for creating professional presentation sl
 
 ## Tools
 
-### 1. `slide-viewer`
+### 1. `create_slide`
+
 Creates a single presentation slide and displays it in an interactive viewer.
 
 **Input:**
+
 ```json
 {
   "slide_data": {
@@ -39,10 +41,12 @@ Creates a single presentation slide and displays it in an interactive viewer.
 }
 ```
 
-### 2. `slide-carousel`
+### 2. `create_slide_carousel`
+
 Creates multiple slides at once and displays them in a scrollable carousel.
 
 **Input:**
+
 ```json
 {
   "slides_data": [
@@ -62,10 +66,12 @@ Creates multiple slides at once and displays them in a scrollable carousel.
 }
 ```
 
-### 3. `search-images`
+### 3. `search_images`
+
 Search for professional images to use in slides.
 
 **Input:**
+
 ```json
 {
   "caption": "artificial intelligence technology"
@@ -75,11 +81,13 @@ Search for professional images to use in slides.
 ## Setup
 
 1. **Install dependencies:**
+
    ```bash
    pnpm install
    ```
 
 2. **Build the UI components (from project root):**
+
    ```bash
    cd ..
    pnpm run build
@@ -95,6 +103,7 @@ The server will start on `http://localhost:8001` by default.
 ## Development
 
 Run the server with auto-reload:
+
 ```bash
 pnpm run dev
 ```
@@ -106,17 +115,20 @@ pnpm run dev
 ## Integration with ChatGPT
 
 1. Start the asset server (from project root):
+
    ```bash
    pnpm run serve
    ```
 
 2. Start the MCP server:
+
    ```bash
    cd slides_server_node
    pnpm start
    ```
 
 3. Expose the server using ngrok:
+
    ```bash
    ngrok http 8001
    ```
@@ -131,6 +143,7 @@ pnpm run dev
 ## Architecture
 
 The server uses:
+
 - **MCP SDK** for protocol implementation
 - **SSE (Server-Sent Events)** for real-time communication
 - **SlidesGPT API** (staging.slidesgpt.com) for slide generation
@@ -139,6 +152,7 @@ The server uses:
 ## Widget Components
 
 The server references two pre-built React components:
+
 - `slides-viewer` - Single slide display
 - `slides-carousel` - Multiple slides carousel
 
