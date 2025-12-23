@@ -91,7 +91,7 @@ function ThemeSelector({ deckId, currentThemeId, onThemeApplied }) {
 
     try {
       const response = await fetch(
-        "https://local.ajinkyabodke.com/api/chat/apply-theme",
+        "https://slidesgpt-next-git-feat-custom-themes-in-gpt-slidesgpt.vercel.app/api/chat/apply-theme",
         {
           method: "POST",
           mode: "cors",
