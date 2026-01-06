@@ -1280,6 +1280,12 @@ const sessions = new Map<string, SessionRecord>();
 
 const ssePath = "/mcp";
 const postPath = "/mcp/messages";
+const wellKnownPath = "/.well-known/openai-apps-challenge";
+
+// OpenAI Apps SDK domain verification token
+const OPENAI_VERIFICATION_TOKEN =
+  process.env.OPENAI_VERIFICATION_TOKEN ??
+  "DPxuPbiplL5KtNt0UNg-JhFGzhgTMaFjUkhCgoILaQg";
 
 async function handleSseRequest(res: ServerResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -1373,6 +1379,16 @@ const httpServer = createServer(
       return;
     }
 
+    // OpenAI domain verification endpoint
+    if (req.method === "GET" && url.pathname === wellKnownPath) {
+      res.writeHead(200, {
+        "Content-Type": "text/plain",
+        "Access-Control-Allow-Origin": "*",
+      });
+      res.end(OPENAI_VERIFICATION_TOKEN);
+      return;
+    }
+
     if (req.method === "GET" && url.pathname === ssePath) {
       await handleSseRequest(res);
       return;
@@ -1397,5 +1413,8 @@ httpServer.listen(port, () => {
   console.log(`  SSE stream: GET http://localhost:${port}${ssePath}`);
   console.log(
     `  Message post endpoint: POST http://localhost:${port}${postPath}?sessionId=...`
+  );
+  console.log(
+    `  Domain verification: GET http://localhost:${port}${wellKnownPath}`
   );
 });
