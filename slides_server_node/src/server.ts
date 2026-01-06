@@ -127,7 +127,7 @@ function getOrCreatePresentation(presentationId?: string): PresentationContext {
   const context: PresentationContext = {
     presentationId: newPresentationId,
     conversationId: crypto.randomBytes(16).toString("hex"),
-    userId: `mcp-user-${crypto.randomBytes(8).toString("hex")}`,
+    userId: `appSDK-user-${crypto.randomBytes(8).toString("hex")}`,
     slideCount: 0,
     createdAt: new Date(),
     lastUsed: new Date(),
