@@ -640,20 +640,17 @@ async function createSlide(
   console.log(`   User ID: ${presentationContext.userId}`);
   console.log(`   Conversation ID: ${presentationContext.conversationId}`);
 
-  const response = await fetch(
-    "https://slidesgpt-next-git-feat-custom-themes-in-gpt-slidesgpt.vercel.app/chat/generate",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...headers,
-      },
-      body: JSON.stringify({
-        v: "2",
-        slidecode: slideData,
-      }),
-    }
-  );
+  const response = await fetch("https://staging.slidesgpt.com/chat/generate", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...headers,
+    },
+    body: JSON.stringify({
+      v: "2",
+      slidecode: slideData,
+    }),
+  });
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -676,9 +673,7 @@ async function createSlide(
 
 // API call to search images
 async function searchImages(caption: string): Promise<any[]> {
-  const searchUrl = new URL(
-    "https://slidesgpt-next-git-feat-custom-themes-in-gpt-slidesgpt.vercel.app/chat/search"
-  );
+  const searchUrl = new URL("https://staging.slidesgpt.com/chat/search");
   searchUrl.searchParams.append("caption", caption);
 
   const response = await fetch(searchUrl.toString(), {
@@ -715,7 +710,7 @@ async function applyTheme(
   console.log(`\n🎨 Applying theme "${themeId}" to deck ${deckId}`);
 
   const response = await fetch(
-    "https://slidesgpt-next-git-feat-custom-themes-in-gpt-slidesgpt.vercel.app/api/chat/apply-theme",
+    "https://staging.slidesgpt.com/api/chat/apply-theme",
     {
       method: "POST",
       headers: {
