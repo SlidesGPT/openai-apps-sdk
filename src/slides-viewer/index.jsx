@@ -14,11 +14,11 @@ function ThemePreview({ theme, isSelected, isApplying, onSelect }) {
       onClick={onSelect}
       disabled={isApplying}
       className={`
-        relative flex-shrink-0 w-28 rounded-lg overflow-hidden border-2 transition-all duration-200
+        relative flex-shrink-0 w-28 rounded-lg overflow-hidden transition-all duration-200
         ${
           isSelected
-            ? "border-primary ring-2 ring-primary/30 scale-105"
-            : "border-gray-200 hover:border-primary/50 hover:scale-102"
+            ? "ring-2 ring-blue-500 shadow-md scale-[1.02]"
+            : "ring-1 ring-gray-200 hover:ring-gray-300 hover:scale-[1.01]"
         }
         ${isApplying ? "opacity-50 cursor-wait" : "cursor-pointer"}
       `}
@@ -147,16 +147,18 @@ function ThemeSelector({ deckId, currentThemeId, onThemeApplied }) {
 
       {/* Theme grid - always show a preview row, expandable for full grid */}
       <div
-        className={`overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 ${
-          isExpanded ? "" : "max-h-24"
+        className={`${
+          isExpanded
+            ? "overflow-y-auto max-h-[480px] scrollbar-thin scrollbar-thumb-gray-300"
+            : "overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-gray-300"
         }`}
       >
         <div
           className={`
           ${
             isExpanded
-              ? "grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2"
-              : "flex gap-2 pb-2"
+              ? "grid grid-cols-6 gap-2 p-1"
+              : "flex gap-2 p-1"
           }
         `}
         >

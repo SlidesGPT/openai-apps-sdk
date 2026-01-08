@@ -465,224 +465,16 @@ const urbanThemes: PresentationTheme[] = [
 ];
 
 // ============================================================================
-// MINIMAL THEMES
+// MINIMAL THEMES (removed for cleaner 4-row grid - Urban + Gradient = 22 themes)
 // ============================================================================
 
-const minimalThemes: PresentationTheme[] = [
-  // Pure Minimal - Ultra Clean
-  {
-    id: "minimal-pure-light",
-    name: "Minimal Pure",
-    category: "minimal",
-    description: "Ultra Clean - Ultra-minimal, corporate, monochrome",
-    colors: {
-      primary: rgbToHex(255, 255, 255),
-      heading: rgbToHex(0, 0, 0),
-      body: rgbToHex(0, 0, 0),
-      accent: rgbToHex(204, 204, 204),
-      muted: rgbToHex(204, 204, 204),
-    },
-    fontFamily: "Inter",
-    background: {
-      type: "solid",
-      solidColor: rgbToHex(255, 255, 255),
-      imageSize: "cover",
-      imagePosition: "center",
-    },
-    version: 1,
-  },
-  {
-    id: "minimal-pure-dark",
-    name: "Minimal Pure Dark",
-    category: "minimal",
-    description: "Ultra Clean - Ultra-minimal, corporate, monochrome",
-    colors: {
-      primary: rgbToHex(0, 0, 0),
-      heading: rgbToHex(255, 255, 255),
-      body: rgbToHex(255, 255, 255),
-      accent: rgbToHex(204, 204, 204),
-      muted: rgbToHex(204, 204, 204),
-    },
-    fontFamily: "Inter",
-    background: {
-      type: "solid",
-      solidColor: rgbToHex(0, 0, 0),
-      imageSize: "cover",
-      imagePosition: "center",
-    },
-    version: 1,
-  },
-
-  // Zen Gray - Calm Neutral Tones
-  {
-    id: "zen-gray-light",
-    name: "Zen Gray",
-    category: "minimal",
-    description: "Calm Neutral Tones - Soft neutral gray, calm, understated",
-    colors: {
-      primary: rgbToHex(255, 255, 255),
-      heading: rgbToHex(42, 42, 42),
-      body: rgbToHex(42, 42, 42),
-      accent: rgbToHex(141, 141, 141),
-      muted: rgbToHex(141, 141, 141),
-    },
-    fontFamily: "Inter",
-    background: {
-      type: "solid",
-      solidColor: rgbToHex(255, 255, 255),
-      imageSize: "cover",
-      imagePosition: "center",
-    },
-    version: 1,
-  },
-  {
-    id: "zen-gray-dark",
-    name: "Zen Gray Dark",
-    category: "minimal",
-    description: "Calm Neutral Tones - Soft neutral gray, calm, understated",
-    colors: {
-      primary: rgbToHex(42, 42, 42),
-      heading: rgbToHex(255, 255, 255),
-      body: rgbToHex(255, 255, 255),
-      accent: rgbToHex(141, 141, 141),
-      muted: rgbToHex(141, 141, 141),
-    },
-    fontFamily: "Inter",
-    background: {
-      type: "solid",
-      solidColor: rgbToHex(42, 42, 42),
-      imageSize: "cover",
-      imagePosition: "center",
-    },
-    version: 1,
-  },
-];
+const minimalThemes: PresentationTheme[] = [];
 
 // ============================================================================
 // GRADIENT THEMES
 // ============================================================================
 
 const gradientThemes: PresentationTheme[] = [
-  // Aurora Glow - Soft Pastel Gradient (Variant 1)
-  {
-    id: "aurora-glow-1",
-    name: "Aurora Glow",
-    category: "gradient",
-    description: "Soft Pastel Gradient - Vibrant, Creative, Gradient-Friendly",
-    colors: {
-      primary: "#FFEACF",
-      heading: rgbToHex(28, 28, 28),
-      body: rgbToHex(28, 28, 28),
-      accent: rgbToHex(28, 28, 28),
-      muted: rgbToHex(28, 28, 28),
-    },
-    fontFamily: "Poppins",
-    background: {
-      type: "gradient",
-      gradient: {
-        type: "linear",
-        direction: "297.4deg",
-        colors: [
-          { color: "#FFEACF", stop: 0 },
-          { color: "#CAA9FF", stop: 100 },
-        ],
-      },
-      imageSize: "cover",
-      imagePosition: "center",
-    },
-    version: 1,
-  },
-
-  // Aurora Glow - Soft Pastel Gradient (Variant 2)
-  {
-    id: "aurora-glow-2",
-    name: "Aurora Glow Pink",
-    category: "gradient",
-    description: "Soft Pastel Gradient - Vibrant, Creative, Gradient-Friendly",
-    colors: {
-      primary: "#DD5166",
-      heading: rgbToHex(28, 28, 28),
-      body: rgbToHex(28, 28, 28),
-      accent: rgbToHex(255, 122, 194),
-      muted: rgbToHex(255, 255, 255),
-    },
-    fontFamily: "Poppins",
-    background: {
-      type: "gradient",
-      gradient: {
-        type: "linear",
-        direction: "307.2deg",
-        colors: [
-          { color: "#DD5166", stop: 0 },
-          { color: "#926BF2", stop: 100 },
-        ],
-      },
-      imageSize: "cover",
-      imagePosition: "center",
-    },
-    version: 1,
-  },
-
-  // Aurora Glow - Soft Pastel Gradient (Variant 3)
-  {
-    id: "aurora-glow-3",
-    name: "Aurora Glow Blue",
-    category: "gradient",
-    description: "Soft Pastel Gradient - Vibrant, Creative, Gradient-Friendly",
-    colors: {
-      primary: "#9DC4F1",
-      heading: rgbToHex(28, 28, 28),
-      body: rgbToHex(28, 28, 28),
-      accent: rgbToHex(28, 28, 28),
-      muted: rgbToHex(28, 28, 28),
-    },
-    fontFamily: "Poppins",
-    background: {
-      type: "gradient",
-      gradient: {
-        type: "linear",
-        direction: "297.4deg",
-        colors: [
-          { color: "#9DC4F1", stop: 0 },
-          { color: "#CAA9FF", stop: 100 },
-        ],
-      },
-      imageSize: "cover",
-      imagePosition: "center",
-    },
-    version: 1,
-  },
-
-  // Aurora Glow - Soft Pastel Gradient (Variant 4)
-  {
-    id: "aurora-glow-4",
-    name: "Aurora Glow Teal",
-    category: "gradient",
-    description: "Soft Pastel Gradient - Vibrant, Creative, Gradient-Friendly",
-    colors: {
-      primary: "#7BDAE1",
-      heading: rgbToHex(28, 28, 28),
-      body: rgbToHex(28, 28, 28),
-      accent: rgbToHex(28, 28, 28),
-      muted: rgbToHex(28, 28, 28),
-    },
-    fontFamily: "Poppins",
-    background: {
-      type: "gradient",
-      gradient: {
-        type: "linear",
-        direction: "297.4deg",
-        colors: [
-          { color: "#7BDAE1", stop: 0 },
-          { color: "#D9FA9E", stop: 100 },
-        ],
-      },
-      imageSize: "cover",
-      imagePosition: "center",
-    },
-    version: 1,
-  },
-
   // Cosmic Pulse - High-Energy Neon Gradient (Light)
   {
     id: "cosmic-pulse-light",
@@ -797,16 +589,16 @@ export const searchThemes = (query: string): PresentationTheme[] => {
 
 // Theme recommendations based on content type
 export const THEME_RECOMMENDATIONS: Record<string, string[]> = {
-  corporate: ["zurich-light", "zurich-dark", "berlin-light", "minimal-pure-light"],
-  finance: ["zurich-light", "shanghai-dark", "berlin-dark", "minimal-pure-dark"],
+  corporate: ["zurich-light", "zurich-dark", "berlin-light", "copenhagen-light"],
+  finance: ["zurich-light", "shanghai-dark", "berlin-dark", "zurich-dark"],
   tech: ["tokyo-light", "tokyo-dark", "shanghai-dark", "cosmic-pulse-light"],
-  startup: ["tokyo-dark", "la-light", "aurora-glow-1", "cosmic-pulse-light"],
-  creative: ["la-light", "la-dark", "aurora-glow-2", "aurora-glow-1"],
-  marketing: ["la-light", "new-york-light", "aurora-glow-1", "cosmic-pulse-light"],
+  startup: ["tokyo-dark", "la-light", "cosmic-pulse-light", "cosmic-pulse-dark"],
+  creative: ["la-light", "la-dark", "cosmic-pulse-light", "tokyo-light"],
+  marketing: ["la-light", "new-york-light", "cosmic-pulse-light", "tokyo-dark"],
   luxury: ["paris-light", "paris-dark", "copenhagen-light", "copenhagen-dark"],
-  elegant: ["copenhagen-light", "paris-light", "minimal-pure-light", "zen-gray-light"],
-  education: ["minimal-pure-light", "zen-gray-light", "zurich-light", "berlin-light"],
-  academic: ["minimal-pure-light", "minimal-pure-dark", "zen-gray-light", "berlin-light"],
+  elegant: ["copenhagen-light", "paris-light", "zurich-light", "berlin-light"],
+  education: ["zurich-light", "berlin-light", "copenhagen-light", "paris-light"],
+  academic: ["zurich-light", "zurich-dark", "berlin-light", "berlin-dark"],
   bold: ["new-york-light", "new-york-dark", "la-light", "cosmic-pulse-light"],
-  energetic: ["aurora-glow-2", "cosmic-pulse-light", "la-light", "tokyo-light"],
+  energetic: ["cosmic-pulse-light", "cosmic-pulse-dark", "la-light", "tokyo-light"],
 };

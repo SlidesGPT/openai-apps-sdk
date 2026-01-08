@@ -233,7 +233,7 @@ const widgets: SlideWidget[] = [
   },
 ];
 
-// Theme library - 22 themes across 3 categories
+// Theme library - 18 themes across 2 categories (Urban + Gradient)
 const THEME_IDS = [
   // Urban themes (16)
   "copenhagen-light",
@@ -252,16 +252,7 @@ const THEME_IDS = [
   "zurich-dark",
   "shanghai-light",
   "shanghai-dark",
-  // Minimal themes (4)
-  "minimal-pure-light",
-  "minimal-pure-dark",
-  "zen-gray-light",
-  "zen-gray-dark",
-  // Gradient themes (6)
-  "aurora-glow-1",
-  "aurora-glow-2",
-  "aurora-glow-3",
-  "aurora-glow-4",
+  // Gradient themes (2)
   "cosmic-pulse-light",
   "cosmic-pulse-dark",
 ] as const;
@@ -345,46 +336,6 @@ const THEME_METADATA: Record<
     category: "urban",
     description: "Techno-Global Commerce",
   },
-  "minimal-pure-light": {
-    name: "Minimal Pure",
-    category: "minimal",
-    description: "Ultra Clean",
-  },
-  "minimal-pure-dark": {
-    name: "Minimal Pure Dark",
-    category: "minimal",
-    description: "Ultra Clean",
-  },
-  "zen-gray-light": {
-    name: "Zen Gray",
-    category: "minimal",
-    description: "Calm Neutral Tones",
-  },
-  "zen-gray-dark": {
-    name: "Zen Gray Dark",
-    category: "minimal",
-    description: "Calm Neutral Tones",
-  },
-  "aurora-glow-1": {
-    name: "Aurora Glow",
-    category: "gradient",
-    description: "Soft Pastel Gradient",
-  },
-  "aurora-glow-2": {
-    name: "Aurora Glow Pink",
-    category: "gradient",
-    description: "Soft Pastel Gradient",
-  },
-  "aurora-glow-3": {
-    name: "Aurora Glow Blue",
-    category: "gradient",
-    description: "Soft Pastel Gradient",
-  },
-  "aurora-glow-4": {
-    name: "Aurora Glow Teal",
-    category: "gradient",
-    description: "Soft Pastel Gradient",
-  },
   "cosmic-pulse-light": {
     name: "Cosmic Pulse",
     category: "gradient",
@@ -402,30 +353,30 @@ const _THEME_RECOMMENDATIONS: Record<string, ThemeId[]> = {
   corporate: [
     "zurich-light",
     "berlin-light",
-    "minimal-pure-light",
+    "copenhagen-light",
     "shanghai-light",
   ],
   finance: [
     "zurich-light",
     "shanghai-dark",
     "berlin-dark",
-    "minimal-pure-dark",
+    "zurich-dark",
   ],
   tech: ["tokyo-light", "tokyo-dark", "shanghai-dark", "cosmic-pulse-light"],
-  startup: ["tokyo-dark", "la-light", "aurora-glow-1", "cosmic-pulse-light"],
-  creative: ["la-light", "la-dark", "aurora-glow-2", "aurora-glow-1"],
+  startup: ["tokyo-dark", "la-light", "cosmic-pulse-light", "cosmic-pulse-dark"],
+  creative: ["la-light", "la-dark", "cosmic-pulse-light", "tokyo-light"],
   marketing: [
     "la-light",
     "new-york-light",
-    "aurora-glow-1",
     "cosmic-pulse-light",
+    "tokyo-dark",
   ],
   luxury: ["paris-light", "paris-dark", "copenhagen-light", "copenhagen-dark"],
   education: [
-    "minimal-pure-light",
-    "zen-gray-light",
     "zurich-light",
     "berlin-light",
+    "copenhagen-light",
+    "paris-light",
   ],
 };
 
@@ -842,13 +793,12 @@ For most cases, simply omit the image_id when creating slides - the system handl
     description: `Apply a visual theme to re-style the entire presentation.
 
 WHEN TO USE:
-- User says "apply Tokyo Dark theme", "use minimal theme", "change theme to Paris", etc.
+- User says "apply Tokyo Dark theme", "change theme to Paris", etc.
 - User wants to customize the presentation appearance
 
-AVAILABLE THEMES (26 total):
+AVAILABLE THEMES (18 total):
 • Urban: copenhagen, tokyo, paris, berlin, new-york, la, zurich, shanghai (each has -light and -dark variants)
-• Minimal: minimal-pure-light/dark, zen-gray-light/dark
-• Gradient: aurora-glow-1/2/3/4, cosmic-pulse-light/dark
+• Gradient: cosmic-pulse-light/dark
 
 REQUIRES: presentation_id from previous slide creation. This re-renders all slides with the new theme.`,
     inputSchema: applyThemeInputSchema,
@@ -867,7 +817,7 @@ WHEN TO USE:
 - User says "show themes", "what themes are available", "let me pick a theme"
 - User wants to browse theme options visually
 
-Shows a widget with 26 theme previews across 3 categories (Urban, Minimal, Gradient) with color swatches and fonts.`,
+Shows a widget with 18 theme previews across 2 categories (Urban, Gradient) with color swatches and fonts.`,
     inputSchema: showThemePickerInputSchema,
     title: "Show Theme Picker",
     _meta: widgetMeta(widgetsById.get("theme-picker")!),
