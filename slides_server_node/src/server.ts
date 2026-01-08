@@ -43,7 +43,7 @@ const SlideSchema = z.object({
   title: z.string().describe("Title of the slide"),
   subtitle: z.string().describe("Subtitle of the slide"),
   slidenum: z.number().describe("Slide number in the presentation"),
-  image_id: z.string().describe("Unique identifier for the slide image"),
+  image_id: z.string().optional().default("").describe("Optional image ID - if omitted, system auto-selects the best matching image"),
   body: z.array(BulletPointSchema).describe("Array of bullet points"),
   talktrack: z.string().describe("Detailed talktrack of the slide"),
   sources: z.array(SourceSchema).describe("Array of sources"),
@@ -97,13 +97,15 @@ setInterval(() => {
   const now = new Date();
   const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
+  let cleaned = 0;
   for (const [id, context] of presentations.entries()) {
     if (context.lastUsed < twentyFourHoursAgo) {
-      console.log(
-        `🗑️  Cleaning up old presentation: ${id} (last used: ${context.lastUsed.toISOString()})`
-      );
       presentations.delete(id);
+      cleaned++;
     }
+  }
+  if (cleaned > 0) {
+    console.log(`🗑️  Cleaned ${cleaned} old presentations`);
   }
 }, 60 * 60 * 1000); // Run every hour
 
@@ -117,8 +119,6 @@ function getOrCreatePresentation(presentationId?: string): PresentationContext {
   if (presentationId && presentations.has(presentationId)) {
     const context = presentations.get(presentationId)!;
     context.lastUsed = new Date();
-    console.log(`\n📂 Using existing presentation: ${presentationId}`);
-    console.log(`   Slide count: ${context.slideCount}`);
     return context;
   }
 
@@ -137,7 +137,7 @@ function getOrCreatePresentation(presentationId?: string): PresentationContext {
   };
 
   presentations.set(newPresentationId, context);
-  console.log(`\n📂 Created new presentation: ${newPresentationId}`);
+  console.log(`   📂 New presentation: ${newPresentationId}`);
 
   return context;
 }
@@ -444,34 +444,38 @@ const slideViewerInputSchema = {
       type: "string",
       default: "",
       description:
-        "Presentation ID to maintain continuity across slides in the same conversation. Use empty string '' for the first slide, then ALWAYS pass back the ID returned in the response for subsequent slides. If you pass an empty string for slide 2+, a NEW separate presentation will be created.",
+        "Presentation ID for continuity. Use '' for first slide, then ALWAYS pass the ID returned from previous calls.",
     },
     slide_data: {
       type: "object",
       description:
-        "Complete slide structure with title, subtitle, slidenum, body, talktrack, and sources",
+        "Slide content structure",
       properties: {
         title: { type: "string", description: "Title of the slide" },
         subtitle: { type: "string", description: "Subtitle of the slide" },
         slidenum: { type: "number", description: "Slide number" },
-        image_id: { type: "string", description: "Image ID from search" },
+        image_id: {
+          type: "string",
+          default: "",
+          description: "OPTIONAL - Image ID. If omitted or empty, system auto-selects the best image based on slide content. No need to call search_images first."
+        },
         body: {
           type: "array",
-          description: "Array of bullet points",
+          description: "Array of 2-4 bullet points",
           items: {
             type: "object",
             properties: {
-              point: { type: "string" },
-              description: { type: "string" },
-              icon: { type: "string" },
+              point: { type: "string", description: "Main point (2-5 words)" },
+              description: { type: "string", description: "Explanation (1-2 sentences)" },
+              icon: { type: "string", description: "FontAwesome 5.15 icon name (e.g., 'lightbulb', 'chart-line', 'rocket')" },
             },
             required: ["point", "description", "icon"],
           },
         },
-        talktrack: { type: "string", description: "Speaker notes" },
+        talktrack: { type: "string", description: "Speaker notes for this slide" },
         sources: {
           type: "array",
-          description: "Array of sources",
+          description: "Reference sources",
           items: {
             type: "object",
             properties: {
@@ -481,13 +485,12 @@ const slideViewerInputSchema = {
             required: ["title", "link"],
           },
         },
-        force_edit: { type: "boolean", description: "Overwrite if exists" },
+        force_edit: { type: "boolean", description: "Overwrite if slide exists at this slidenum" },
       },
       required: [
         "title",
         "subtitle",
         "slidenum",
-        "image_id",
         "body",
         "talktrack",
         "sources",
@@ -505,31 +508,36 @@ const slideCarouselInputSchema = {
       type: "string",
       default: "",
       description:
-        "Presentation ID to maintain continuity across slides in the same conversation. Use empty string '' for the first batch of slides, then ALWAYS pass back the ID returned in the response for subsequent batches. If you pass an empty string when adding more slides, a NEW separate presentation will be created.",
+        "Presentation ID for continuity. Use '' for first batch, then ALWAYS pass the ID returned from previous calls.",
     },
     slides_data: {
       type: "array",
-      description: "Array of slide structures",
+      description: "Array of slides to create. Use this for 2+ slides instead of calling create_slide multiple times.",
       items: {
         type: "object",
         properties: {
-          title: { type: "string" },
-          subtitle: { type: "string" },
-          slidenum: { type: "number" },
-          image_id: { type: "string" },
+          title: { type: "string", description: "Slide title" },
+          subtitle: { type: "string", description: "Slide subtitle" },
+          slidenum: { type: "number", description: "Slide number in sequence" },
+          image_id: {
+            type: "string",
+            default: "",
+            description: "OPTIONAL - If omitted, system auto-selects best image"
+          },
           body: {
             type: "array",
+            description: "2-4 bullet points",
             items: {
               type: "object",
               properties: {
-                point: { type: "string" },
-                description: { type: "string" },
-                icon: { type: "string" },
+                point: { type: "string", description: "Main point" },
+                description: { type: "string", description: "Explanation" },
+                icon: { type: "string", description: "FontAwesome icon name" },
               },
               required: ["point", "description", "icon"],
             },
           },
-          talktrack: { type: "string" },
+          talktrack: { type: "string", description: "Speaker notes" },
           sources: {
             type: "array",
             items: {
@@ -543,6 +551,7 @@ const slideCarouselInputSchema = {
           },
           force_edit: { type: "boolean" },
         },
+        required: ["title", "subtitle", "slidenum", "body", "talktrack", "sources"],
       },
     },
   },
@@ -635,11 +644,6 @@ async function createSlide(
 ): Promise<GenerateResponse> {
   const headers = generateOpenAIHeaders(presentationContext);
 
-  console.log(`\n🌐 API Call for slide ${slideData.slidenum}:`);
-  console.log(`   Presentation ID: ${presentationContext.presentationId}`);
-  console.log(`   User ID: ${presentationContext.userId}`);
-  console.log(`   Conversation ID: ${presentationContext.conversationId}`);
-
   const response = await fetch("https://staging.slidesgpt.com/chat/generate", {
     method: "POST",
     headers: {
@@ -654,16 +658,14 @@ async function createSlide(
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("API Error:", errorText);
+    console.error(`   ❌ API Error: ${errorText}`);
     throw new Error(`Failed to create slide: ${response.status}`);
   }
 
   const responseData = await response.json();
   const parsed = GenerateResponseSchema.parse(responseData);
 
-  console.log(`   ✅ Slide ${slideData.slidenum} created successfully`);
-  console.log(`   Image URL: ${parsed.data.image_url}`);
-  console.log(`   Presentation URL: ${parsed.data.presentation_view_url}`);
+  console.log(`   ✅ Slide ${slideData.slidenum}: "${slideData.title}"`);
 
   // Increment slide count
   presentationContext.slideCount++;
@@ -707,8 +709,6 @@ async function applyTheme(
 ): Promise<ApplyThemeResponse> {
   const headers = generateOpenAIHeaders(presentationContext);
 
-  console.log(`\n🎨 Applying theme "${themeId}" to deck ${deckId}`);
-
   const response = await fetch(
     "https://staging.slidesgpt.com/api/chat/apply-theme",
     {
@@ -726,7 +726,7 @@ async function applyTheme(
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("Apply Theme API Error:", errorText);
+    console.error(`   ❌ Apply theme error: ${errorText}`);
     throw new Error(`Failed to apply theme: ${response.status}`);
   }
 
@@ -735,8 +735,7 @@ async function applyTheme(
   // Update presentation context with the new theme
   presentationContext.themeId = themeId;
 
-  console.log(`   ✅ Theme "${themeId}" applied successfully`);
-  console.log(`   Re-rendered ${responseData.slides?.length || 0} slides`);
+  console.log(`   ✅ Theme "${themeId}" applied (${responseData.slides?.length || 0} slides)`);
 
   return responseData;
 }
@@ -769,8 +768,17 @@ function generateThemeOptions(recommendedThemeId?: ThemeId) {
 const tools: Tool[] = [
   {
     name: "create_slide",
-    description:
-      "Creates a professional presentation slide from structured data. Generates a slide with title, subtitle, bullet points, and talk track. The slide will be displayed in an interactive viewer. IMPORTANT: When creating multiple slides in the same conversation, always pass the presentation_id returned from the previous slide creation to maintain presentation continuity.",
+    description: `Create EXACTLY ONE presentation slide. Use this tool ONLY when creating a single slide.
+
+CRITICAL RULES:
+- For creating 2 or more slides at once, you MUST use "create_slide_carousel" instead - NEVER call this tool multiple times
+- The image_id is OPTIONAL - if omitted or empty, the system automatically selects the best matching image
+- You do NOT need to call search_images first - just provide slide content and let the system handle images
+- When adding to an existing presentation, ALWAYS pass the presentation_id from the previous response
+
+WORKFLOW:
+1. User asks for a slide → Use this tool with slide content (image_id optional)
+2. User asks for multiple slides → Use create_slide_carousel instead (NEVER call this multiple times)`,
     inputSchema: slideViewerInputSchema,
     title: "Create Slide",
     _meta: widgetMeta(widgetsById.get("create_slide")!),
@@ -782,8 +790,21 @@ const tools: Tool[] = [
   },
   {
     name: "create_slide_carousel",
-    description:
-      "Creates multiple presentation slides at once and displays them in a scrollable carousel. Each slide includes title, subtitle, bullet points, and talk track. IMPORTANT: When adding more slides to an existing presentation, always pass the presentation_id from the previous tool call to maintain presentation continuity.",
+    description: `Create MULTIPLE presentation slides at once and display them in a carousel viewer.
+
+WHEN TO USE THIS TOOL:
+- User asks to "add 3 more slides" → Use this tool with 3 slides in the array
+- User asks for "a presentation about X" → Use this tool with all slides
+- User asks for "more slides" or "additional slides" → Use this tool
+- ANY request involving 2 or more slides → Use this tool
+
+CRITICAL RULES:
+- ALWAYS use this for creating 2+ slides - NEVER call create_slide multiple times
+- The image_id is OPTIONAL for each slide - the system automatically selects best matching images
+- You do NOT need to call search_images first - just provide slide content
+- When adding to an existing presentation, ALWAYS pass the presentation_id from the previous response
+
+This displays all slides in a beautiful scrollable carousel view instead of individual slide widgets.`,
     inputSchema: slideCarouselInputSchema,
     title: "Create Slides Carousel",
     _meta: widgetMeta(widgetsById.get("create_slide_carousel")!),
@@ -795,8 +816,16 @@ const tools: Tool[] = [
   },
   {
     name: "search_images",
-    description:
-      "Search for professional images to use in slides. Returns image IDs that can be used in the slide_data's image_id field.",
+    description: `Search for professional images and automatically select the best match.
+
+WHEN TO USE:
+- ONLY when a user explicitly asks to see image options or wants to choose a specific image
+- OPTIONAL: You can skip this entirely - create_slide and create_slide_carousel will auto-select images
+
+This tool searches for images matching the caption and returns the BEST MATCHING image_id ready to use.
+The returned image_id can be passed to create_slide or create_slide_carousel.
+
+For most cases, simply omit the image_id when creating slides - the system handles image selection automatically.`,
     inputSchema: searchInputSchema,
     title: "Search Images",
     annotations: {
@@ -807,8 +836,18 @@ const tools: Tool[] = [
   },
   {
     name: "apply_theme",
-    description:
-      "Apply a visual theme to the presentation. This will re-render all slides with the new theme. Available themes include: Urban (Copenhagen, Tokyo, Paris, Berlin, New York, LA, Zürich, Shanghai - each with light/dark), Minimal (Minimal Pure, Zen Gray - light/dark), Gradient (Aurora Glow 1-4, Cosmic Pulse light/dark). Call this after creating slides when the user wants to change the presentation style.",
+    description: `Apply a visual theme to re-style the entire presentation.
+
+WHEN TO USE:
+- User says "apply Tokyo Dark theme", "use minimal theme", "change theme to Paris", etc.
+- User wants to customize the presentation appearance
+
+AVAILABLE THEMES (26 total):
+• Urban: copenhagen, tokyo, paris, berlin, new-york, la, zurich, shanghai (each has -light and -dark variants)
+• Minimal: minimal-pure-light/dark, zen-gray-light/dark
+• Gradient: aurora-glow-1/2/3/4, cosmic-pulse-light/dark
+
+REQUIRES: presentation_id from previous slide creation. This re-renders all slides with the new theme.`,
     inputSchema: applyThemeInputSchema,
     title: "Apply Theme",
     annotations: {
@@ -819,8 +858,13 @@ const tools: Tool[] = [
   },
   {
     name: "show_theme_picker",
-    description:
-      "Display an interactive theme picker widget to the user. Use this to let the user visually browse and select from 22 available themes across 3 categories (Urban, Minimal, Gradient). The widget shows theme previews with colors and fonts.",
+    description: `Display an interactive visual theme picker widget.
+
+WHEN TO USE:
+- User says "show themes", "what themes are available", "let me pick a theme"
+- User wants to browse theme options visually
+
+Shows a widget with 26 theme previews across 3 categories (Urban, Minimal, Gradient) with color swatches and fonts.`,
     inputSchema: showThemePickerInputSchema,
     title: "Show Theme Picker",
     _meta: widgetMeta(widgetsById.get("theme-picker")!),
@@ -875,8 +919,6 @@ function createSlidesServer(): Server {
   server.setRequestHandler(
     ListResourcesRequestSchema,
     async (_request: ListResourcesRequest) => {
-      console.log("\n=== LIST RESOURCES REQUEST ===");
-      console.log("Timestamp:", new Date().toISOString());
       return { resources };
     }
   );
@@ -884,10 +926,6 @@ function createSlidesServer(): Server {
   server.setRequestHandler(
     ReadResourceRequestSchema,
     async (request: ReadResourceRequest) => {
-      console.log("\n=== READ RESOURCE REQUEST ===");
-      console.log("URI:", request.params.uri);
-      console.log("Timestamp:", new Date().toISOString());
-
       const widget = widgetsByUri.get(request.params.uri);
 
       if (!widget) {
@@ -917,9 +955,6 @@ function createSlidesServer(): Server {
   server.setRequestHandler(
     ListToolsRequestSchema,
     async (_request: ListToolsRequest) => {
-      console.log("\n=== LIST TOOLS REQUEST ===");
-      console.log("Timestamp:", new Date().toISOString());
-      console.log("Returning", tools.length, "tools");
       return { tools };
     }
   );
@@ -929,13 +964,7 @@ function createSlidesServer(): Server {
     async (request: CallToolRequest) => {
       const toolName = request.params.name;
 
-      console.log("\n=== TOOL CALL RECEIVED ===");
-      console.log("Tool Name:", toolName);
-      console.log("Timestamp:", new Date().toISOString());
-      console.log("\n--- Request Metadata (_meta) ---");
-      console.log(JSON.stringify(request.params._meta, null, 2));
-      console.log("\n--- Arguments ---");
-      console.log(JSON.stringify(request.params.arguments, null, 2));
+      console.log(`\n🔧 Tool: ${toolName}`);
 
       try {
         // Handle create_slide tool
@@ -945,17 +974,8 @@ function createSlidesServer(): Server {
             request.params.arguments ?? {}
           );
 
-          console.log("\n--- Presentation ID from request ---");
-          console.log(
-            `Raw: "${request.params.arguments?.presentation_id}"`,
-            `Parsed: "${args.presentation_id || "undefined"}"`
-          );
-
           // Get or create presentation context
           const presentation = getOrCreatePresentation(args.presentation_id);
-
-          console.log("\n--- Parsed slide_data ---");
-          console.log(JSON.stringify(args.slide_data, null, 2));
 
           const result = await createSlide(args.slide_data, presentation);
 
@@ -966,7 +986,6 @@ function createSlidesServer(): Server {
             );
             if (extractedDeckId) {
               presentation.deckId = extractedDeckId;
-              console.log(`   📍 Extracted deck ID: ${extractedDeckId}`);
             }
           }
 
@@ -1015,21 +1034,10 @@ function createSlidesServer(): Server {
             request.params.arguments ?? {}
           );
 
-          console.log("\n--- Presentation ID from request ---");
-          console.log(
-            `Raw: "${request.params.arguments?.presentation_id}"`,
-            `Parsed: "${args.presentation_id || "undefined"}"`
-          );
-
           // Get or create presentation context
           const presentation = getOrCreatePresentation(args.presentation_id);
 
-          console.log(`\n--- Creating ${args.slides_data.length} slides ---`);
-          console.log(JSON.stringify(args.slides_data, null, 2));
-
-          console.log(
-            `\n🚀 Starting sequential API calls for ${args.slides_data.length} slides...`
-          );
+          console.log(`   Creating ${args.slides_data.length} slides...`);
           const results: GenerateResponse[] = [];
           for (const slideData of args.slides_data) {
             const result = await createSlide(slideData, presentation);
@@ -1042,11 +1050,10 @@ function createSlidesServer(): Server {
               );
               if (extractedDeckId) {
                 presentation.deckId = extractedDeckId;
-                console.log(`   📍 Extracted deck ID: ${extractedDeckId}`);
               }
             }
           }
-          console.log(`\n✅ All ${results.length} API calls completed`);
+          console.log(`   ✅ Created ${results.length} slides`);
 
           const slides = args.slides_data.map((slideData, index) => ({
             title: slideData.title,
@@ -1055,11 +1062,6 @@ function createSlidesServer(): Server {
             image_url: results[index].data.image_url,
             presentation_view_url: results[index].data.presentation_view_url,
           }));
-
-          console.log(`\n📦 Returning ${slides.length} slides in response`);
-          slides.forEach((slide) => {
-            console.log(`   - Slide ${slide.slidenum}: ${slide.title}`);
-          });
 
           // Check if these are the first slides and theme hasn't been offered yet
           const isFirstBatch =
@@ -1101,8 +1103,7 @@ function createSlidesServer(): Server {
         if (toolName === "search_images") {
           const args = searchInputParser.parse(request.params.arguments ?? {});
 
-          console.log("\n--- Searching images ---");
-          console.log("Caption:", args.caption);
+          console.log(`🔍 Searching images for: "${args.caption}"`);
 
           const images = await searchImages(args.caption);
 
@@ -1111,29 +1112,29 @@ function createSlidesServer(): Server {
               content: [
                 {
                   type: "text",
-                  text: `No images found for "${args.caption}". Try different search terms or proceed without an image.`,
+                  text: `No images found for "${args.caption}". You can proceed without an image (the system will handle it), or try different search terms.`,
                 },
               ],
             };
           }
 
-          const topImages = images.slice(0, 3);
-          const imageList = topImages
-            .map(
-              (img: any, index: number) =>
-                `${index + 1}. ${img.image_id}\n   Caption: "${
-                  img.caption
-                }"\n   Preview: ${img.url}`
-            )
-            .join("\n\n");
+          // Auto-select the best (first) image
+          const bestImage = images[0];
+          console.log(`   ✅ Auto-selected: ${bestImage.image_id}`);
 
           return {
             content: [
               {
                 type: "text",
-                text: `Found ${images.length} images for "${args.caption}":\n\n${imageList}\n\nUse the image_id in your slide creation.`,
+                text: `✅ Found and auto-selected the best matching image:\n\nImage ID: ${bestImage.image_id}\nCaption: "${bestImage.caption}"\n\nUse this image_id when creating your slide, or omit it entirely to let the system choose automatically.`,
               },
             ],
+            structuredContent: {
+              selected_image_id: bestImage.image_id,
+              caption: bestImage.caption,
+              preview_url: bestImage.url,
+              total_found: images.length,
+            },
           };
         }
 
@@ -1142,10 +1143,6 @@ function createSlidesServer(): Server {
           const args = applyThemeInputParser.parse(
             request.params.arguments ?? {}
           );
-
-          console.log("\n--- Applying theme ---");
-          console.log("Presentation ID:", args.presentation_id);
-          console.log("Theme ID:", args.theme_id);
 
           // Get presentation context
           const presentation = presentations.get(args.presentation_id);
@@ -1215,13 +1212,6 @@ function createSlidesServer(): Server {
             request.params.arguments ?? {}
           );
 
-          console.log("\n--- Showing theme picker ---");
-          console.log("Presentation ID:", args.presentation_id);
-          console.log(
-            "Recommended Theme:",
-            args.recommended_theme_id || "none"
-          );
-
           // Get presentation context to access the actual deck ID
           const presentation = presentations.get(args.presentation_id);
           const deckId = presentation?.deckId || null;
@@ -1288,9 +1278,7 @@ async function handleSseRequest(res: ServerResponse) {
   const transport = new SSEServerTransport(postPath, res);
   const sessionId = transport.sessionId;
 
-  console.log("\n=== NEW SSE SESSION ===");
-  console.log("Session ID:", sessionId);
-  console.log("Timestamp:", new Date().toISOString());
+  console.log(`\n📡 New session: ${sessionId}`);
 
   sessions.set(sessionId, { server, transport });
 
@@ -1322,10 +1310,6 @@ async function handlePostMessage(
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "content-type");
   const sessionId = url.searchParams.get("sessionId");
-
-  console.log("\n=== INCOMING POST MESSAGE ===");
-  console.log("Session ID:", sessionId);
-  console.log("Headers:", JSON.stringify(req.headers, null, 2));
 
   if (!sessionId) {
     res.writeHead(400).end("Missing sessionId query parameter");
