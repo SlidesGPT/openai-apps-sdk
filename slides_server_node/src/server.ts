@@ -119,6 +119,7 @@ function getOrCreatePresentation(presentationId?: string): PresentationContext {
   if (presentationId && presentations.has(presentationId)) {
     const context = presentations.get(presentationId)!;
     context.lastUsed = new Date();
+    console.log(`   📂 Presentation: ${presentationId} (${context.slideCount} slides, deck: ${context.deckId || 'pending'})`);
     return context;
   }
 
@@ -396,8 +397,8 @@ const THEME_METADATA: Record<
   },
 };
 
-// Theme recommendations by content type
-const THEME_RECOMMENDATIONS: Record<string, ThemeId[]> = {
+// Theme recommendations by content type (for future auto-recommendation feature)
+const _THEME_RECOMMENDATIONS: Record<string, ThemeId[]> = {
   corporate: [
     "zurich-light",
     "berlin-light",
@@ -666,6 +667,7 @@ async function createSlide(
   const parsed = GenerateResponseSchema.parse(responseData);
 
   console.log(`   ✅ Slide ${slideData.slidenum}: "${slideData.title}"`);
+  console.log(`      → ${parsed.data.presentation_view_url}`);
 
   // Increment slide count
   presentationContext.slideCount++;
@@ -736,6 +738,7 @@ async function applyTheme(
   presentationContext.themeId = themeId;
 
   console.log(`   ✅ Theme "${themeId}" applied (${responseData.slides?.length || 0} slides)`);
+  console.log(`      → ${responseData.presentation_view_url}`);
 
   return responseData;
 }
@@ -986,6 +989,7 @@ function createSlidesServer(): Server {
             );
             if (extractedDeckId) {
               presentation.deckId = extractedDeckId;
+              console.log(`      deck: ${extractedDeckId}`);
             }
           }
 
@@ -1050,10 +1054,12 @@ function createSlidesServer(): Server {
               );
               if (extractedDeckId) {
                 presentation.deckId = extractedDeckId;
+                console.log(`      deck: ${extractedDeckId}`);
               }
             }
           }
-          console.log(`   ✅ Created ${results.length} slides`);
+          console.log(`   ✅ All ${results.length} slides created`);
+          console.log(`      → ${results[results.length - 1]?.data.presentation_view_url}`);
 
           const slides = args.slides_data.map((slideData, index) => ({
             title: slideData.title,
