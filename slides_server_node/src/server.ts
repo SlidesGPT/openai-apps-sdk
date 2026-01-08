@@ -144,10 +144,15 @@ function getOrCreatePresentation(presentationId?: string): PresentationContext {
 }
 
 // Helper function to extract deck ID from presentation view URL
-// URL format: https://app.slidesgpt.com//view/{deckId}
+// URL format: https://app.slidesgpt.com/view/{deckId}
 function extractDeckIdFromUrl(url: string): string | null {
   const match = url.match(/\/view\/([a-zA-Z0-9]+)/);
   return match ? match[1] : null;
+}
+
+// Helper function to normalize URL (remove double slashes in path)
+function normalizeUrl(url: string): string {
+  return url.replace(/([^:]\/)\/+/g, "$1");
 }
 
 // Helper function to generate OpenAI-compatible headers
@@ -618,7 +623,7 @@ async function createSlide(
   const parsed = GenerateResponseSchema.parse(responseData);
 
   console.log(`   ✅ Slide ${slideData.slidenum}: "${slideData.title}"`);
-  console.log(`      → ${parsed.data.presentation_view_url}`);
+  console.log(`      → ${normalizeUrl(parsed.data.presentation_view_url)}`);
 
   // Increment slide count
   presentationContext.slideCount++;
@@ -689,7 +694,7 @@ async function applyTheme(
   presentationContext.themeId = themeId;
 
   console.log(`   ✅ Theme "${themeId}" applied (${responseData.slides?.length || 0} slides)`);
-  console.log(`      → ${responseData.presentation_view_url}`);
+  console.log(`      → ${normalizeUrl(responseData.presentation_view_url)}`);
 
   return responseData;
 }
@@ -973,7 +978,7 @@ function createSlidesServer(): Server {
                 subtitle: args.slide_data.subtitle,
                 slidenum: args.slide_data.slidenum,
                 image_url: result.data.image_url,
-                presentation_view_url: result.data.presentation_view_url,
+                presentation_view_url: normalizeUrl(result.data.presentation_view_url),
               },
               ...(isFirstSlide ? { theme_options: themeOptions } : {}),
             },
@@ -1009,14 +1014,14 @@ function createSlidesServer(): Server {
             }
           }
           console.log(`   ✅ All ${results.length} slides created`);
-          console.log(`      → ${results[results.length - 1]?.data.presentation_view_url}`);
+          console.log(`      → ${normalizeUrl(results[results.length - 1]?.data.presentation_view_url || "")}`);
 
           const slides = args.slides_data.map((slideData, index) => ({
             title: slideData.title,
             subtitle: slideData.subtitle,
             slidenum: slideData.slidenum,
             image_url: results[index].data.image_url,
-            presentation_view_url: results[index].data.presentation_view_url,
+            presentation_view_url: normalizeUrl(results[index].data.presentation_view_url),
           }));
 
           // Check if these are the first slides and theme hasn't been offered yet
@@ -1143,7 +1148,7 @@ function createSlidesServer(): Server {
                 }) has been applied to your presentation!\n\n${
                   result.slides?.length || 0
                 } slide(s) have been re-rendered with the new theme.\n\nView your presentation: ${
-                  result.presentation_view_url
+                  normalizeUrl(result.presentation_view_url)
                 }`,
               },
             ],
@@ -1156,7 +1161,7 @@ function createSlidesServer(): Server {
                 description: themeMeta.description,
               },
               slides: result.slides,
-              presentation_view_url: result.presentation_view_url,
+              presentation_view_url: normalizeUrl(result.presentation_view_url),
             },
           };
         }
