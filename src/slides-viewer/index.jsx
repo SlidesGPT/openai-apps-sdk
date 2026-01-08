@@ -1,4 +1,4 @@
-import { Check, Download, ExternalLink, Loader2, Palette } from "lucide-react";
+import { Check, ExternalLink, Loader2, Palette } from "lucide-react";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -155,11 +155,7 @@ function ThemeSelector({ deckId, currentThemeId, onThemeApplied }) {
       >
         <div
           className={`
-          ${
-            isExpanded
-              ? "grid grid-cols-6 gap-2 p-1"
-              : "flex gap-2 p-1"
-          }
+          ${isExpanded ? "grid grid-cols-6 gap-2 p-1" : "flex gap-2 p-1"}
         `}
         >
           {allThemes.map((theme) => (
@@ -282,16 +278,6 @@ function App() {
             >
               <ExternalLink className="h-4 w-4" aria-hidden="true" />
               View Presentation
-            </a>
-          )}
-          {displayImageUrl && (
-            <a
-              href={displayImageUrl}
-              download={`slide-${slide.slidenum}.png`}
-              className="inline-flex items-center gap-2 rounded-lg bg-secondary text-secondary-foreground px-4 py-2 text-sm font-medium hover:bg-secondary/80 transition-colors"
-            >
-              <Download className="h-4 w-4" aria-hidden="true" />
-              Download Slide
             </a>
           )}
         </div>
