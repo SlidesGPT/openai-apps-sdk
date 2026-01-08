@@ -1,13 +1,13 @@
 /**
  * Theme Library - Preset themes for presentations
- * 22 themes across 3 categories: Urban, Minimal, Gradient
+ * 18 themes across 2 categories: Urban, Gradient
  */
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-export type ThemeCategory = "urban" | "minimal" | "gradient";
+export type ThemeCategory = "urban" | "gradient";
 
 export type ThemeColorPalette = {
   primary: string; // Slide background color
@@ -465,12 +465,6 @@ const urbanThemes: PresentationTheme[] = [
 ];
 
 // ============================================================================
-// MINIMAL THEMES (removed for cleaner 4-row grid - Urban + Gradient = 22 themes)
-// ============================================================================
-
-const minimalThemes: PresentationTheme[] = [];
-
-// ============================================================================
 // GRADIENT THEMES
 // ============================================================================
 
@@ -546,11 +540,6 @@ export const THEME_LIBRARY: ThemeLibrary = {
       name: "Urban",
       description: "City-inspired themes with bold, modern aesthetics",
       themes: urbanThemes,
-    },
-    minimal: {
-      name: "Minimal",
-      description: "Clean, simple themes with focus on content",
-      themes: minimalThemes,
     },
     gradient: {
       name: "Gradient",

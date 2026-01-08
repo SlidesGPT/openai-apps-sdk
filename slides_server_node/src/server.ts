@@ -574,7 +574,7 @@ const applyThemeInputSchema = {
       type: "string",
       enum: THEME_IDS as unknown as string[],
       description:
-        "The theme ID to apply. Choose from: copenhagen-light/dark, tokyo-light/dark, paris-light/dark, berlin-light/dark, new-york-light/dark, la-light/dark, zurich-light/dark, shanghai-light/dark, minimal-pure-light/dark, zen-gray-light/dark, aurora-glow-1/2/3/4, cosmic-pulse-light/dark",
+        "The theme ID to apply. Choose from: copenhagen-light/dark, tokyo-light/dark, paris-light/dark, berlin-light/dark, new-york-light/dark, la-light/dark, zurich-light/dark, shanghai-light/dark, cosmic-pulse-light/dark",
     },
   },
   required: ["presentation_id", "theme_id"],
@@ -745,15 +745,14 @@ function generateThemeOptions(recommendedThemeId?: ThemeId) {
 
   const categories = {
     urban: allThemes.filter((t) => t.category === "urban"),
-    minimal: allThemes.filter((t) => t.category === "minimal"),
     gradient: allThemes.filter((t) => t.category === "gradient"),
   };
 
   return {
-    message: `Your presentation has been created! Would you like to apply a custom theme? We have 22 themes across 3 categories.`,
+    message: `Your presentation has been created! Would you like to apply a custom theme? We have 18 themes across 2 categories.`,
     categories,
     all_themes: allThemes,
-    total_themes: 22,
+    total_themes: 18,
     recommended_theme_id: recommendedThemeId,
     instructions: `To apply a theme, say "Use [theme name]" (e.g., "Use Tokyo Dark") or use the apply_theme tool with the theme_id.`,
   };
@@ -857,7 +856,7 @@ WHEN TO USE:
 - User says "show themes", "what themes are available", "let me pick a theme"
 - User wants to browse theme options visually
 
-Shows a widget with 18 theme previews across 2 categories (Urban, Gradient) with color swatches and fonts.`,
+Shows a widget with 18 themes across 2 categories (Urban, Gradient) with color swatches and fonts.`,
     inputSchema: showThemePickerInputSchema,
     title: "Show Theme Picker",
     _meta: widgetMeta(widgetsById.get("theme-picker")!),
@@ -994,7 +993,7 @@ function createSlidesServer(): Server {
           if (isFirstSlide) {
             presentation.themeOffered = true;
             themeOptions = generateThemeOptions();
-            themeMessage = `\n\n🎨 **Theme Options Available!**\nWould you like to customize your presentation's look? We have 22 themes across 3 categories (Urban, Minimal, Gradient). Say "show themes" or "use [theme name]" to apply a theme.`;
+            themeMessage = `\n\n🎨 **Theme Options Available!**\nWould you like to customize your presentation's look? We have 18 themes across 2 categories (Urban, Gradient). Say "show themes" or "use [theme name]" to apply a theme.`;
           }
 
           return {
@@ -1076,7 +1075,7 @@ function createSlidesServer(): Server {
           if (isFirstBatch) {
             presentation.themeOffered = true;
             themeOptions = generateThemeOptions();
-            themeMessage = `\n\n🎨 **Theme Options Available!**\nWould you like to customize your presentation's look? We have 22 themes across 3 categories (Urban, Minimal, Gradient). Say "show themes" or "use [theme name]" to apply a theme.`;
+            themeMessage = `\n\n🎨 **Theme Options Available!**\nWould you like to customize your presentation's look? We have 18 themes across 2 categories (Urban, Gradient). Say "show themes" or "use [theme name]" to apply a theme.`;
           }
 
           return {
@@ -1228,7 +1227,7 @@ function createSlidesServer(): Server {
             content: [
               {
                 type: "text",
-                text: `🎨 Choose a theme for your presentation!\n\nWe have ${themeOptions.total_themes} themes across 3 categories:\n• Urban (16 themes): City-inspired, bold, modern\n• Minimal (4 themes): Clean, simple, content-focused\n• Gradient (6 themes): Vibrant, creative, eye-catching\n\n${themeOptions.instructions}`,
+                text: `🎨 Choose a theme for your presentation!\n\nWe have ${themeOptions.total_themes} themes across 2 categories:\n• Urban (16 themes): City-inspired, bold, modern\n• Gradient (2 themes): Vibrant, creative, eye-catching\n\n${themeOptions.instructions}`,
               },
             ],
             structuredContent: {

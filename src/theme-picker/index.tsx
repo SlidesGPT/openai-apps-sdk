@@ -80,19 +80,19 @@ function ThemePicker() {
 
     // Handle different formats of categories prop:
     // 1. undefined -> use all categories
-    // 2. Array like ["urban", "minimal"] -> filter to those
-    // 3. Object like { urban: [...], minimal: [...] } -> extract keys
+    // 2. Array like ["urban", "gradient"] -> filter to those
+    // 3. Object like { urban: [...], gradient: [...] } -> extract keys
     let categoriesToShow: ThemeCategory[];
 
     if (!filteredCategories) {
-      categoriesToShow = ["urban", "minimal", "gradient"] as ThemeCategory[];
+      categoriesToShow = ["urban", "gradient"] as ThemeCategory[];
     } else if (Array.isArray(filteredCategories)) {
       categoriesToShow = filteredCategories;
     } else if (typeof filteredCategories === "object") {
       // It's an object with category keys - extract the keys
       categoriesToShow = Object.keys(filteredCategories) as ThemeCategory[];
     } else {
-      categoriesToShow = ["urban", "minimal", "gradient"] as ThemeCategory[];
+      categoriesToShow = ["urban", "gradient"] as ThemeCategory[];
     }
 
     categoriesToShow.forEach((key) => {
@@ -191,7 +191,7 @@ function ThemePicker() {
           </div>
           <div className="flex-1">
             <h1 className="text-lg font-semibold text-gray-900">Choose a Theme</h1>
-            <p className="text-xs text-gray-500">22 themes across 3 categories</p>
+            <p className="text-xs text-gray-500">18 themes across 2 categories</p>
           </div>
         </div>
       </div>
