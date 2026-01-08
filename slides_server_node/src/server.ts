@@ -215,6 +215,13 @@ function widgetMeta(widget: SlideWidget) {
     "openai/toolInvocation/invoked": widget.invoked,
     "openai/widgetAccessible": true,
     "openai/resultCanProduceWidget": true,
+    // Required for app submission: Content Security Policy
+    "openai/widgetCSP": {
+      connect_domains: ["https://slidesgpt.com"],
+      resource_domains: ["https://slidesgpt.com"],
+    },
+    // Required for app submission: Unique domain for the widget
+    "openai/widgetDomain": "slidesgpt",
   } as const;
 }
 
