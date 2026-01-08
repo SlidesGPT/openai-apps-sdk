@@ -91,7 +91,7 @@ function ThemeSelector({ deckId, currentThemeId, onThemeApplied }) {
 
     try {
       const response = await fetch(
-        "https://staging.slidesgpt.com/api/chat/apply-theme",
+        "https://slidesgpt.com/api/chat/apply-theme",
         {
           method: "POST",
           mode: "cors",

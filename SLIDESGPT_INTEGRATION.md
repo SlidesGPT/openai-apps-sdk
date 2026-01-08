@@ -233,7 +233,7 @@ The MCP server integrates with SlidesGPT's API:
 
 ### Slide Generation
 
-**Endpoint:** `POST https://staging.slidesgpt.com/chat/generate`
+**Endpoint:** `POST https://slidesgpt.com/chat/generate`
 
 **Request:**
 
@@ -265,7 +265,7 @@ The MCP server integrates with SlidesGPT's API:
 
 ### Image Search
 
-**Endpoint:** `GET https://staging.slidesgpt.com/chat/search?caption={query}`
+**Endpoint:** `GET https://slidesgpt.com/chat/search?caption={query}`
 
 **Response:**
 

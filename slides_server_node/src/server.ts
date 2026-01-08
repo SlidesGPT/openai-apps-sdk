@@ -43,7 +43,13 @@ const SlideSchema = z.object({
   title: z.string().describe("Title of the slide"),
   subtitle: z.string().describe("Subtitle of the slide"),
   slidenum: z.number().describe("Slide number in the presentation"),
-  image_id: z.string().optional().default("").describe("Optional image ID - if omitted, system auto-selects the best matching image"),
+  image_id: z
+    .string()
+    .optional()
+    .default("")
+    .describe(
+      "Optional image ID - if omitted, system auto-selects the best matching image"
+    ),
   body: z.array(BulletPointSchema).describe("Array of bullet points"),
   talktrack: z.string().describe("Detailed talktrack of the slide"),
   sources: z.array(SourceSchema).describe("Array of sources"),
@@ -119,7 +125,11 @@ function getOrCreatePresentation(presentationId?: string): PresentationContext {
   if (presentationId && presentations.has(presentationId)) {
     const context = presentations.get(presentationId)!;
     context.lastUsed = new Date();
-    console.log(`   📂 Presentation: ${presentationId} (${context.slideCount} slides, deck: ${context.deckId || 'pending'})`);
+    console.log(
+      `   📂 Presentation: ${presentationId} (${
+        context.slideCount
+      } slides, deck: ${context.deckId || "pending"})`
+    );
     return context;
   }
 
@@ -361,21 +371,16 @@ const _THEME_RECOMMENDATIONS: Record<string, ThemeId[]> = {
     "copenhagen-light",
     "shanghai-light",
   ],
-  finance: [
-    "zurich-light",
-    "shanghai-dark",
-    "berlin-dark",
-    "zurich-dark",
-  ],
+  finance: ["zurich-light", "shanghai-dark", "berlin-dark", "zurich-dark"],
   tech: ["tokyo-light", "tokyo-dark", "shanghai-dark", "cosmic-pulse-light"],
-  startup: ["tokyo-dark", "la-light", "cosmic-pulse-light", "cosmic-pulse-dark"],
-  creative: ["la-light", "la-dark", "cosmic-pulse-light", "tokyo-light"],
-  marketing: [
-    "la-light",
-    "new-york-light",
-    "cosmic-pulse-light",
+  startup: [
     "tokyo-dark",
+    "la-light",
+    "cosmic-pulse-light",
+    "cosmic-pulse-dark",
   ],
+  creative: ["la-light", "la-dark", "cosmic-pulse-light", "tokyo-light"],
+  marketing: ["la-light", "new-york-light", "cosmic-pulse-light", "tokyo-dark"],
   luxury: ["paris-light", "paris-dark", "copenhagen-light", "copenhagen-dark"],
   education: [
     "zurich-light",
@@ -405,8 +410,7 @@ const slideViewerInputSchema = {
     },
     slide_data: {
       type: "object",
-      description:
-        "Slide content structure",
+      description: "Slide content structure",
       properties: {
         title: { type: "string", description: "Title of the slide" },
         subtitle: { type: "string", description: "Subtitle of the slide" },
@@ -414,7 +418,8 @@ const slideViewerInputSchema = {
         image_id: {
           type: "string",
           default: "",
-          description: "OPTIONAL - Image ID. If omitted or empty, system auto-selects the best image based on slide content. No need to call search_images first."
+          description:
+            "OPTIONAL - Image ID. If omitted or empty, system auto-selects the best image based on slide content. No need to call search_images first.",
         },
         body: {
           type: "array",
@@ -423,13 +428,23 @@ const slideViewerInputSchema = {
             type: "object",
             properties: {
               point: { type: "string", description: "Main point (2-5 words)" },
-              description: { type: "string", description: "Explanation (1-2 sentences)" },
-              icon: { type: "string", description: "FontAwesome 5.15 icon name (e.g., 'lightbulb', 'chart-line', 'rocket')" },
+              description: {
+                type: "string",
+                description: "Explanation (1-2 sentences)",
+              },
+              icon: {
+                type: "string",
+                description:
+                  "FontAwesome 5.15 icon name (e.g., 'lightbulb', 'chart-line', 'rocket')",
+              },
             },
             required: ["point", "description", "icon"],
           },
         },
-        talktrack: { type: "string", description: "Speaker notes for this slide" },
+        talktrack: {
+          type: "string",
+          description: "Speaker notes for this slide",
+        },
         sources: {
           type: "array",
           description: "Reference sources",
@@ -442,7 +457,10 @@ const slideViewerInputSchema = {
             required: ["title", "link"],
           },
         },
-        force_edit: { type: "boolean", description: "Overwrite if slide exists at this slidenum" },
+        force_edit: {
+          type: "boolean",
+          description: "Overwrite if slide exists at this slidenum",
+        },
       },
       required: [
         "title",
@@ -469,7 +487,8 @@ const slideCarouselInputSchema = {
     },
     slides_data: {
       type: "array",
-      description: "Array of slides to create. Use this for 2+ slides instead of calling create_slide multiple times.",
+      description:
+        "Array of slides to create. Use this for 2+ slides instead of calling create_slide multiple times.",
       items: {
         type: "object",
         properties: {
@@ -479,7 +498,8 @@ const slideCarouselInputSchema = {
           image_id: {
             type: "string",
             default: "",
-            description: "OPTIONAL - If omitted, system auto-selects best image"
+            description:
+              "OPTIONAL - If omitted, system auto-selects best image",
           },
           body: {
             type: "array",
@@ -508,7 +528,14 @@ const slideCarouselInputSchema = {
           },
           force_edit: { type: "boolean" },
         },
-        required: ["title", "subtitle", "slidenum", "body", "talktrack", "sources"],
+        required: [
+          "title",
+          "subtitle",
+          "slidenum",
+          "body",
+          "talktrack",
+          "sources",
+        ],
       },
     },
   },
@@ -601,7 +628,7 @@ async function createSlide(
 ): Promise<GenerateResponse> {
   const headers = generateOpenAIHeaders(presentationContext);
 
-  const response = await fetch("https://staging.slidesgpt.com/chat/generate", {
+  const response = await fetch("https://slidesgpt.com/chat/generate", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -633,7 +660,7 @@ async function createSlide(
 
 // API call to search images
 async function searchImages(caption: string): Promise<any[]> {
-  const searchUrl = new URL("https://staging.slidesgpt.com/chat/search");
+  const searchUrl = new URL("https://slidesgpt.com/chat/search");
   searchUrl.searchParams.append("caption", caption);
 
   const response = await fetch(searchUrl.toString(), {
@@ -667,20 +694,17 @@ async function applyTheme(
 ): Promise<ApplyThemeResponse> {
   const headers = generateOpenAIHeaders(presentationContext);
 
-  const response = await fetch(
-    "https://staging.slidesgpt.com/api/chat/apply-theme",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...headers,
-      },
-      body: JSON.stringify({
-        deckId,
-        themeId,
-      }),
-    }
-  );
+  const response = await fetch("https://slidesgpt.com/api/chat/apply-theme", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...headers,
+    },
+    body: JSON.stringify({
+      deckId,
+      themeId,
+    }),
+  });
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -693,7 +717,11 @@ async function applyTheme(
   // Update presentation context with the new theme
   presentationContext.themeId = themeId;
 
-  console.log(`   ✅ Theme "${themeId}" applied (${responseData.slides?.length || 0} slides)`);
+  console.log(
+    `   ✅ Theme "${themeId}" applied (${
+      responseData.slides?.length || 0
+    } slides)`
+  );
   console.log(`      → ${normalizeUrl(responseData.presentation_view_url)}`);
 
   return responseData;
@@ -978,7 +1006,9 @@ function createSlidesServer(): Server {
                 subtitle: args.slide_data.subtitle,
                 slidenum: args.slide_data.slidenum,
                 image_url: result.data.image_url,
-                presentation_view_url: normalizeUrl(result.data.presentation_view_url),
+                presentation_view_url: normalizeUrl(
+                  result.data.presentation_view_url
+                ),
               },
               ...(isFirstSlide ? { theme_options: themeOptions } : {}),
             },
@@ -1014,14 +1044,20 @@ function createSlidesServer(): Server {
             }
           }
           console.log(`   ✅ All ${results.length} slides created`);
-          console.log(`      → ${normalizeUrl(results[results.length - 1]?.data.presentation_view_url || "")}`);
+          console.log(
+            `      → ${normalizeUrl(
+              results[results.length - 1]?.data.presentation_view_url || ""
+            )}`
+          );
 
           const slides = args.slides_data.map((slideData, index) => ({
             title: slideData.title,
             subtitle: slideData.subtitle,
             slidenum: slideData.slidenum,
             image_url: results[index].data.image_url,
-            presentation_view_url: normalizeUrl(results[index].data.presentation_view_url),
+            presentation_view_url: normalizeUrl(
+              results[index].data.presentation_view_url
+            ),
           }));
 
           // Check if these are the first slides and theme hasn't been offered yet
@@ -1147,9 +1183,9 @@ function createSlidesServer(): Server {
                   themeMeta.description
                 }) has been applied to your presentation!\n\n${
                   result.slides?.length || 0
-                } slide(s) have been re-rendered with the new theme.\n\nView your presentation: ${
-                  normalizeUrl(result.presentation_view_url)
-                }`,
+                } slide(s) have been re-rendered with the new theme.\n\nView your presentation: ${normalizeUrl(
+                  result.presentation_view_url
+                )}`,
               },
             ],
             structuredContent: {
