@@ -426,18 +426,18 @@ const slideViewerInputSchema = {
           type: "string",
           default: "",
           description:
-            "OPTIONAL - Image ID. If omitted or empty, system auto-selects the best image based on slide content. No need to call search_images first.",
+            "Image ID from search_images. REQUIRED: You MUST call search_images first to find a relevant image, then use the returned image_id here. Leave empty ONLY if search returned no suitable images.",
         },
         body: {
           type: "array",
-          description: "Array of 2-4 bullet points",
+          description: "Array of 3-5 substantial bullet points. Each bullet should be information-rich with concrete details, data, or actionable insights.",
           items: {
             type: "object",
             properties: {
-              point: { type: "string", description: "Main point (2-5 words)" },
+              point: { type: "string", description: "Main point (2-6 words, clear and specific)" },
               description: {
                 type: "string",
-                description: "Explanation (1-2 sentences)",
+                description: "Detailed explanation (2-4 lines). Include specific data, evidence, use cases, or actionable insights. Paragraphs are encouraged for information-rich content.",
               },
               icon: {
                 type: "string",
@@ -506,16 +506,16 @@ const slideCarouselInputSchema = {
             type: "string",
             default: "",
             description:
-              "OPTIONAL - If omitted, system auto-selects best image",
+              "Image ID from search_images. REQUIRED: Call search_images first for each slide with a tailored caption, then use the returned image_id.",
           },
           body: {
             type: "array",
-            description: "2-4 bullet points",
+            description: "3-5 substantial bullet points with detailed, information-rich content",
             items: {
               type: "object",
               properties: {
-                point: { type: "string", description: "Main point" },
-                description: { type: "string", description: "Explanation" },
+                point: { type: "string", description: "Main point (2-6 words)" },
+                description: { type: "string", description: "Detailed explanation (2-4 lines with data, evidence, or insights)" },
                 icon: { type: "string", description: "FontAwesome icon name" },
               },
               required: ["point", "description", "icon"],
@@ -555,7 +555,7 @@ const searchInputSchema = {
   properties: {
     caption: {
       type: "string",
-      description: "Search terms for finding relevant images",
+      description: "Descriptive search caption tailored to the slide content. Be specific (e.g., 'artificial intelligence neural network brain visualization' not just 'AI'). Include subject, style, and mood for best results.",
     },
   },
   required: ["caption"],
@@ -765,13 +765,19 @@ const tools: Tool[] = [
 
 CRITICAL RULES:
 - For creating 2 or more slides at once, you MUST use "create_slide_carousel" instead - NEVER call this tool multiple times
-- The image_id is OPTIONAL - if omitted or empty, the system automatically selects the best matching image
-- You do NOT need to call search_images first - just provide slide content and let the system handle images
 - When adding to an existing presentation, ALWAYS pass the presentation_id from the previous response
 
-WORKFLOW:
-1. User asks for a slide → Use this tool with slide content (image_id optional)
-2. User asks for multiple slides → Use create_slide_carousel instead (NEVER call this multiple times)`,
+MANDATORY WORKFLOW - Follow these steps for EACH slide:
+1. Call search_images with a tailored caption describing the slide's visual needs
+2. Select the best image_id from the search results
+3. Call create_slide with the image_id and rich content (3-5 detailed bullets)
+4. If search returns no suitable images, you may leave image_id empty
+
+CONTENT REQUIREMENTS:
+- Each slide MUST have 3-5 substantial bullet points
+- Each bullet description should be 2-4 lines with specific data, evidence, use cases, or actionable insights
+- Content should be PhD-level, detailed, and evidence-driven
+- Use FontAwesome 5.15 icons for each bullet (e.g., fa-bolt, fa-chart-line, fa-lightbulb)`,
     inputSchema: slideViewerInputSchema,
     title: "Create Slide",
     _meta: widgetMeta(widgetsById.get("create_slide")!),
@@ -791,11 +797,21 @@ WHEN TO USE THIS TOOL:
 - User asks for "more slides" or "additional slides" → Use this tool
 - ANY request involving 2 or more slides → Use this tool
 
+MANDATORY WORKFLOW - Before calling this tool:
+1. For EACH slide, call search_images with a tailored caption specific to that slide's content
+2. Collect the best image_id for each slide from search results
+3. Then call create_slide_carousel with all slides and their respective image_ids
+4. If a search returns no suitable images for a slide, leave that slide's image_id empty
+
 CRITICAL RULES:
 - ALWAYS use this for creating 2+ slides - NEVER call create_slide multiple times
-- The image_id is OPTIONAL for each slide - the system automatically selects best matching images
-- You do NOT need to call search_images first - just provide slide content
 - When adding to an existing presentation, ALWAYS pass the presentation_id from the previous response
+
+CONTENT REQUIREMENTS:
+- Each slide MUST have 3-5 substantial bullet points
+- Each bullet description should be 2-4 lines with specific data, evidence, use cases, or actionable insights
+- Content should be PhD-level, detailed, and evidence-driven
+- Use FontAwesome 5.15 icons for each bullet
 
 This displays all slides in a beautiful scrollable carousel view instead of individual slide widgets.`,
     inputSchema: slideCarouselInputSchema,
@@ -809,16 +825,24 @@ This displays all slides in a beautiful scrollable carousel view instead of indi
   },
   {
     name: "search_images",
-    description: `Search for professional images and automatically select the best match.
+    description: `Search for professional images. MUST be called before creating each slide.
 
-WHEN TO USE:
-- ONLY when a user explicitly asks to see image options or wants to choose a specific image
-- OPTIONAL: You can skip this entirely - create_slide and create_slide_carousel will auto-select images
+MANDATORY USAGE:
+- You MUST call this tool BEFORE every create_slide or create_slide_carousel call
+- For carousel with multiple slides, call search_images once per slide with a tailored caption
+- Each search caption should be specific to the slide's content and visual needs
 
-This tool searches for images matching the caption and returns the BEST MATCHING image_id ready to use.
-The returned image_id can be passed to create_slide or create_slide_carousel.
+WORKFLOW:
+1. Analyze the slide content you're about to create
+2. Create a descriptive caption for the visual (e.g., "artificial intelligence neural network technology", "business team collaboration meeting")
+3. Call search_images with that caption
+4. Use the returned image_id in your create_slide or create_slide_carousel call
+5. If no suitable images found, you may proceed without an image_id
 
-For most cases, simply omit the image_id when creating slides - the system handles image selection automatically.`,
+CAPTION TIPS:
+- Be specific and descriptive (not generic like "business" - use "corporate finance quarterly report")
+- Include the subject, style, and mood
+- Think about what visual would best complement the slide's message`,
     inputSchema: searchInputSchema,
     title: "Search Images",
     annotations: {
