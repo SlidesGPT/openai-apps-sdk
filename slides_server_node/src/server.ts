@@ -221,7 +221,7 @@ function widgetMeta(widget: SlideWidget) {
       resource_domains: ["https://slidesgpt.com"],
     },
     // Required for app submission: Unique domain for the widget
-    "openai/widgetDomain": "slidesgpt",
+    "openai/widgetDomain": "slidesgpt.com",
   } as const;
 }
 
