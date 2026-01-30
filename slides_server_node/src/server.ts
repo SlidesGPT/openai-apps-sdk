@@ -635,7 +635,7 @@ async function createSlide(
 ): Promise<GenerateResponse> {
   const headers = generateOpenAIHeaders(presentationContext);
 
-  const response = await fetch("https://slidesgpt.com/chat/generate", {
+  const response = await fetch("https://slidesgpt.com/chat/generate?source=openai-appsdk", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
