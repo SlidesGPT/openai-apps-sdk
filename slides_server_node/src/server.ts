@@ -208,7 +208,7 @@ function readWidgetHtml(componentName: string): string {
   return htmlContents;
 }
 
-function widgetMeta(widget: SlideWidget) {
+function widgetMeta(widget: SlideWidget, options?: { hideWidgetDomain?: boolean }) {
   return {
     "openai/outputTemplate": widget.templateUri,
     "openai/toolInvocation/invoking": widget.invoking,
@@ -217,11 +217,11 @@ function widgetMeta(widget: SlideWidget) {
     "openai/resultCanProduceWidget": true,
     // Required for app submission: Content Security Policy
     "openai/widgetCSP": {
-      connect_domains: ["https://slidesgpt.com"],
-      resource_domains: ["https://slidesgpt.com"],
+      connect_domains: ["https://slidesgpt.com", "https://app.slidesgpt.com"],
+      resource_domains: ["https://slidesgpt.com", "https://app.slidesgpt.com"],
     },
-    // Required for app submission: Unique domain for the widget
-    "openai/widgetDomain": "slidesgpt.com",
+    // Widget domain for "Open in X" button - can be hidden for widgets with custom headers
+    ...(options?.hideWidgetDomain ? {} : { "openai/widgetDomain": "slidesgpt.com" }),
   } as const;
 }
 
@@ -816,7 +816,7 @@ CONTENT REQUIREMENTS:
 This displays all slides in a beautiful scrollable carousel view instead of individual slide widgets.`,
     inputSchema: slideCarouselInputSchema,
     title: "Create Slides Carousel",
-    _meta: widgetMeta(widgetsById.get("create_slide_carousel")!),
+    _meta: widgetMeta(widgetsById.get("create_slide_carousel")!, { hideWidgetDomain: true }),
     annotations: {
       destructiveHint: false,
       openWorldHint: true,
@@ -897,7 +897,7 @@ const resources: Resource[] = widgets.map((widget) => ({
   name: widget.title,
   description: `${widget.title} widget markup`,
   mimeType: "text/html+skybridge",
-  _meta: widgetMeta(widget),
+  _meta: widgetMeta(widget, { hideWidgetDomain: widget.id === "create_slide_carousel" }),
 }));
 
 const resourceTemplates: ResourceTemplate[] = widgets.map((widget) => ({
@@ -905,7 +905,7 @@ const resourceTemplates: ResourceTemplate[] = widgets.map((widget) => ({
   name: widget.title,
   description: `${widget.title} widget markup`,
   mimeType: "text/html+skybridge",
-  _meta: widgetMeta(widget),
+  _meta: widgetMeta(widget, { hideWidgetDomain: widget.id === "create_slide_carousel" }),
 }));
 
 function createSlidesServer(): Server {
@@ -954,7 +954,7 @@ function createSlidesServer(): Server {
             uri: widget.templateUri,
             mimeType: "text/html+skybridge",
             text: widget.html,
-            _meta: widgetMeta(widget),
+            _meta: widgetMeta(widget, { hideWidgetDomain: widget.id === "create_slide_carousel" }),
           },
         ],
       };
@@ -1119,10 +1119,12 @@ function createSlidesServer(): Server {
             ],
             structuredContent: {
               presentation_id: presentation.presentationId,
+              deck_id: presentation.deckId, // For inline theme selector
+              theme_id: presentation.themeId, // Current theme if any
               slides,
               ...(isFirstBatch ? { theme_options: themeOptions } : {}),
             },
-            _meta: widgetMeta(widget),
+            _meta: widgetMeta(widget, { hideWidgetDomain: true }),
           };
         }
 

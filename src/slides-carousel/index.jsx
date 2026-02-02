@@ -1,7 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import useEmblaCarousel from "embla-carousel-react";
-import { ArrowLeft, ArrowRight, Maximize2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Maximize2, ExternalLink } from "lucide-react";
 import { useWidgetProps } from "../use-widget-props";
 import { useOpenAiGlobal } from "../use-openai-global";
 import { useMaxHeight } from "../use-max-height";
@@ -11,6 +11,9 @@ function App() {
   const props = useWidgetProps({
     slides: [],
   });
+
+  // Get presentation URL from first slide (all slides share the same presentation)
+  const presentationUrl = props.slides?.[0]?.presentation_view_url || null;
 
   const { slides = [] } = props;
   const displayMode = useOpenAiGlobal("displayMode");
@@ -80,6 +83,32 @@ function App() {
             : "border-0")
         }
       >
+        {/* Fullscreen Header with Open in SlidesGPT button */}
+        {displayMode === "fullscreen" && presentationUrl && (
+          <div
+            className="absolute top-0 left-0 right-0 z-30 flex items-center justify-end px-4 py-3"
+            style={{
+              paddingTop: isMobile ? `${Math.max(12, safeAreaTop)}px` : "12px",
+              paddingLeft: isMobile ? `${Math.max(16, safeAreaLeft)}px` : "16px",
+              paddingRight: isMobile ? `${Math.max(16, safeAreaRight)}px` : "16px",
+            }}
+          >
+            <a
+              href={presentationUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg transition-colors"
+            >
+              <img
+                src="https://slidesgpt.com/favicon.svg"
+                alt=""
+                className="w-3.5 h-3.5"
+              />
+              Open in SlidesGPT
+            </a>
+          </div>
+        )}
+
         {/* Fullscreen Toggle Button */}
         {displayMode !== "fullscreen" && (
           <button
@@ -104,9 +133,13 @@ function App() {
           className={
             "relative w-full " +
             (displayMode === "fullscreen"
-              ? "h-full flex items-center justify-center py-0"
+              ? "flex items-center justify-center py-0"
               : "py-5")
           }
+          style={{
+            height: displayMode === "fullscreen" && presentationUrl ? "calc(100% - 64px)" : displayMode === "fullscreen" ? "100%" : "auto",
+            marginTop: displayMode === "fullscreen" && presentationUrl ? "64px" : undefined,
+          }}
         >
           <div className={`overflow-hidden w-full ${displayMode === "fullscreen" ? "" : "h-full"}`} ref={emblaRef}>
             <div

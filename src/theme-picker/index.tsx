@@ -124,7 +124,7 @@ function ThemePicker() {
       // Call the API to apply the theme
       if (window?.openai?.callTool && deck_id) {
         try {
-          await window.openai.callTool("applyTheme", {
+          await window.openai.callTool("apply_theme", {
             deckId: deck_id,
             themeId: theme.id,
           });
